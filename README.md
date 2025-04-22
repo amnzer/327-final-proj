@@ -1,2 +1,3 @@
 # Beet Saber
-Repo containing relevant code for the 327 final project 
+
+Repo containing relevant code for the 327 final project.
