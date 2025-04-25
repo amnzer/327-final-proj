@@ -1,40 +1,70 @@
 #include <stdio.h>
+#define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
-
-#define MAX_ARTIST_LEN 16 // Name of artist
-#define MAX_SONG_NAME_LEN 32 //"I "
-#define MAX_PATH_LEN 48 // Use relative path to reduce
-#define MAX_DIFFNAME_LEN 8 // tells you song difficulty
 /*
 Beet Saber Proof-of-Concept
 */
+
 // 1. Define Key Objects
 // a. The song class
-// ../../oszs/charts/audio.ogg
 struct Song { // note that, in the actual game, you wont have much room to print
   // You can trigger playback though?
-  char artist[MAX_ARTIST_LEN];
-  char song_name[MAX_SONG_NAME_LEN];
-  char path_to_song[MAX_PATH_LEN];
-  char diffname[MAX_DIFFNAME_LEN];
+  const char *artist;
+  const char *song_name;
+  const char *path_to_song;
+  //char diffname[MAX_DIFFNAME_LEN]; unneeded
   //unsigned int song_length; // not obtainable from osu metadata, p sure...
   unsigned int preview_time; // time in ms when the song preview starts
-}; // total: 108 Bytes per song object (just in metadata )
-// for the actual song: up to 512 objects, each one 4 bytes (int + flags) => 2kB
+}; // size is variable. Realistically, no larger than 100B per song tho (everything besides hit objs)
+// for the hit objs: up to 512 objects, each one 4 bytes (int + flags) => 2kB. Total: ~2.1kB/song max
 
-struct Song song1_ETA = {
+struct Song song1_eta = {
     .artist ="NewJeans",
-    .song_name ="ETA",
-    .path_to_song ="../../oszs/charts/ETA/audio.mp3",
-    .diffname ="Normal",
+    .song_name = "ETA",
+    .path_to_song = "../../oszs/charts/ETA/audio.mp3",
     .preview_time = 49205
-  };
-struct Song song2_
+  }; 
+
+struct Song song2_duvet = {
+  .artist = "Boa",
+  .song_name = "Duvet",
+  .path_to_song = "../..oszs/charts/duvet/audio.mp3",
+};
+
+void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound *ma_sownd){
+  // clear old song
+  ma_sound_uninit(ma_sownd);
+  // get metadata
+  const char *songname = song_array[idx].song_name;
+  const char *artist = song_array[idx].artist;
+  unsigned int prevyew_time = song_array[idx].preview_time;
+  const char *path = song_array[idx].path_to_song;
+  // play the song
+  // Load sound from file (but don’t auto-start)
+  
+  if (ma_sound_init_from_file(ma_enjine, path, 0, NULL, NULL, ma_sownd) != MA_SUCCESS){
+    ma_engine_uninit(ma_enjine);
+    printf("oop\n");
+  }
+  // start playback at preview time
+  // // part 1: algebra
+  float time_to_go_to = prevyew_time/1000; // preview time is in ms
+  ma_uint64 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
+  ma_uint64 frameToSeek = (ma_uint64)(time_to_go_to * sr);
+  printf("Now playing: %s by %s\n", songname, artist);
+  // // Part a: Start playback
+  if (ma_sound_seek_to_pcm_frame(ma_sownd, frameToSeek) != MA_SUCCESS) {
+    printf("Couldn't find preview time... !\n");
+  }
+  // if all is well...
+  ma_sound_start(ma_sownd);
+  printf("Sound started yippee\n");
+}
+
 // initialize all of these things
-char artist[MAX_ARTIST_LEN];
-char song_name[MAX_SONG_NAME_LEN];
-char path_to_song[MAX_PATH_LEN];
-char diffname[MAX_DIFFNAME_LEN];
+char *artist;
+char *song_name;
+char *path_to_song;
 unsigned int song_length;
 
 // b. The game states
@@ -56,17 +86,33 @@ char welcome_msg[] = "  _      __    __                     __         ___      
 
 // d. Misc Variables
 char user_input = '\0'; // tracks user input
-
+int prev_carousel_idx = 0; 
+int carousel_idx = 0;
 // e. Helper functions for strings
 void clear_input_buffer() {
   int c;
   while ((c = getchar()) != '\n') { } // read until you hit the end
 }
-
 // The Game
 int main(){
+  // Declare song list
+  struct Song songlist[] = {song1_eta, song2_duvet};
+  int songlist_len = sizeof(songlist)/sizeof(songlist[0]);
+  // Set up miniaudio
+  ma_sound sound;
+  ma_engine engine;
+  ma_result result;
+
+  result = ma_engine_init(NULL, &engine);
+  if (result != MA_SUCCESS) {
+    return result;  // Failed to initialize the engine.
+  }
+  // Main game loop
   while (1){
-    // Phase 1: Game start
+    /*Phase 1: Game start
+        User is greeted with a welcome message.
+        User can proceed to SONG_SELECT, or EXIT_GAME.
+    */
     if (game_state == GAME_START){
       printf("%s",welcome_msg);
       printf("Enter e to continue! Or, enter x to exit...\n");
@@ -78,6 +124,7 @@ int main(){
         if(user_input == 'e'){
           game_state = SONG_SELECT;
           printf("Going to song select...\n\n");
+          load_song(0,songlist,&engine, &sound); // should be random, not zero
           break;
         }
         else if (user_input == 'x'){
@@ -93,12 +140,61 @@ int main(){
           User is given a carousel of songs to pick from. User can hover over any song
           User hears the song, starting at a highlighted section, and sees the name of the song.
     */
-    
+    // How this might work on the MSP:
+    // 1. Fetch random start song
+    // // Keep track of millisecond time since song start, then get left 3 bits
+    // // Use an LFSR and XOR it with a floating number (e.g. TIMA0->VALUE)
+    // 2. Play random start song
+    // // Find out if you can play starting at a specific time in ms using the audio chip
     if (game_state == SONG_SELECT){
-      printf("Welcome to song select!\n");
+      printf("Welcome to song select! Enter A and D to scroll through songs. Enter space to confirm\n");
+      while (1){ // Carousel
+        // get a key
+        user_input = getchar();
+        clear_input_buffer();
+        // If key was A, go left
+        if (user_input=='a'){
+          // clear song
+          ma_sound_uninit(&sound);
+          // go left
+          carousel_idx--; 
+          // wrap around to end if needed
+          if (carousel_idx<0){
+            carousel_idx = songlist_len-1; 
+          }
+          // play song 
+          load_song(carousel_idx,songlist,&engine, &sound);
+        }
+        // If key was D, go right
+        else if (user_input=='d'){
+          // clear song
+          ma_sound_uninit(&sound);
+          // go right
+          carousel_idx++;
+          // wrap around to start if needed
+          if (carousel_idx==songlist_len){ 
+            carousel_idx=0;
+          }
+          // play song 
+          load_song(carousel_idx,songlist,&engine, &sound);
+        }
+        // If key was space, confirm selection
+        else if (user_input==' '){ // confirm
+          // clear song
+          ma_sound_uninit(&sound);
+          game_state = IN_GAME;
+          break;
+        }
+        // If none of the above
+        else{
+          printf("Invalid input bruh\n");
+        }
+      }
+    }
+    if (game_state == IN_GAME){
+      printf("Welcome to the game!\n");
       break;
     }
-
     // Game State 5: Exit Game
     if (game_state == EXIT_GAME){
       printf("Thanks for playing!\n\n");
@@ -109,5 +205,9 @@ int main(){
       break;
     }
   }
+  // clear sound and engine
+  ma_sound_uninit(&sound);
+  ma_engine_uninit(&engine); 
+  // goodbye
   return 0;
 }
