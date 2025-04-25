@@ -1,6 +1,7 @@
 #include <stdio.h>
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
+#include <unistd.h>
 /*
 Beet Saber Proof-of-Concept
 */
@@ -21,51 +22,28 @@ struct Song { // note that, in the actual game, you wont have much room to print
 struct Song song1_eta = {
     .artist ="NewJeans",
     .song_name = "ETA",
-    .path_to_song = "../../oszs/charts/ETA/audio.mp3",
+    .path_to_song = "/Users/donu/Desktop/S25/ELEC 327/327-final-proj/oszs/charts/ETA/audio.mp3",//"../../oszs/charts/ETA/audio.mp3",
     .preview_time = 49205
   }; 
 
 struct Song song2_duvet = {
   .artist = "Boa",
   .song_name = "Duvet",
-  .path_to_song = "../..oszs/charts/duvet/audio.mp3",
+  .path_to_song = "/Users/donu/Desktop/S25/ELEC 327/327-final-proj/oszs/charts/duvet/audio.mp3",//"../..oszs/charts/duvet/audio.mp3",
+  .preview_time = 0 // zeroed out since the preview starts really late
 };
-
-void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound *ma_sownd){
-  // clear old song
-  ma_sound_uninit(ma_sownd);
-  // get metadata
-  const char *songname = song_array[idx].song_name;
-  const char *artist = song_array[idx].artist;
-  unsigned int prevyew_time = song_array[idx].preview_time;
-  const char *path = song_array[idx].path_to_song;
-  // play the song
-  // Load sound from file (but don’t auto-start)
-  
-  if (ma_sound_init_from_file(ma_enjine, path, 0, NULL, NULL, ma_sownd) != MA_SUCCESS){
-    ma_engine_uninit(ma_enjine);
-    printf("oop\n");
-  }
-  // start playback at preview time
-  // // part 1: algebra
-  float time_to_go_to = prevyew_time/1000; // preview time is in ms
-  ma_uint64 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
-  ma_uint64 frameToSeek = (ma_uint64)(time_to_go_to * sr);
-  printf("Now playing: %s by %s\n", songname, artist);
-  // // Part a: Start playback
-  if (ma_sound_seek_to_pcm_frame(ma_sownd, frameToSeek) != MA_SUCCESS) {
-    printf("Couldn't find preview time... !\n");
-  }
-  // if all is well...
-  ma_sound_start(ma_sownd);
-  printf("Sound started yippee\n");
-}
-
+struct Song song3_killing_my_love = {
+  .artist = "Leslie Parrish",
+  .song_name = "Killing My Love",
+  .path_to_song = "/Users/donu/Desktop/S25/ELEC 327/327-final-proj/oszs/charts/killing-my-love/audio.mp3",//"../..oszs/charts/duvet/audio.mp3",
+  .preview_time = 76263
+};
 // initialize all of these things
 char *artist;
 char *song_name;
 char *path_to_song;
 unsigned int song_length;
+
 
 // b. The game states
 
@@ -93,10 +71,56 @@ void clear_input_buffer() {
   int c;
   while ((c = getchar()) != '\n') { } // read until you hit the end
 }
+// 2. Key Functions
+// a. Playback
+unsigned short song_initialized = 0; //true if song is playing
+
+unsigned short conditional_uninit(ma_sound *ma_sownd){
+  if (song_initialized){
+    ma_sound_stop(ma_sownd);
+    ma_sound_uninit(ma_sownd);
+    printf("Stopped and uninit\n");
+    usleep(360000); // !impt: delay in us btwn songs. Without this you get artifacting.
+    song_initialized = 0;
+    return 0; 
+  }
+  return 1; // if this is true, already uninit
+}
+void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound *ma_sownd){
+  // clear old song
+  int double_uninit = conditional_uninit(ma_sownd);
+  // get metadata
+  const char *songname = song_array[idx].song_name;
+  const char *artist = song_array[idx].artist;
+  unsigned int prevyew_time = song_array[idx].preview_time;
+  const char *path = song_array[idx].path_to_song;
+  // play the song
+  // Load sound from file (but don’t auto-start)
+  if (ma_sound_init_from_file(ma_enjine, path, 0, NULL, NULL,ma_sownd) != MA_SUCCESS){
+    printf("oop!!\n");
+    return;
+  }
+  // start playback at preview time
+  // // part 1: algebra
+  float time_to_go_to = prevyew_time/1000.0; // preview time is in ms
+  ma_uint64 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
+  ma_uint64 frameToSeek = (ma_uint64)(time_to_go_to * sr);
+  // // Part a: Start playback
+  if (ma_sound_seek_to_pcm_frame(ma_sownd, frameToSeek) != MA_SUCCESS) {
+    printf("Couldn't find preview time... !\n");
+  }
+  usleep(80000);
+  printf("Now playing: %s by %s\n", songname, artist);
+  // if all is well...
+  ma_sound_start(ma_sownd);
+  printf("Song initted\n");
+  song_initialized=1;
+  printf("Sound started yippee\n");
+}
 // The Game
 int main(){
   // Declare song list
-  struct Song songlist[] = {song1_eta, song2_duvet};
+  struct Song songlist[] = {song1_eta, song2_duvet, song3_killing_my_love};
   int songlist_len = sizeof(songlist)/sizeof(songlist[0]);
   // Set up miniaudio
   ma_sound sound;
@@ -150,12 +174,12 @@ int main(){
       printf("Welcome to song select! Enter A and D to scroll through songs. Enter space to confirm\n");
       while (1){ // Carousel
         // get a key
+        printf("Carousel idx: %d\n",carousel_idx);
         user_input = getchar();
         clear_input_buffer();
         // If key was A, go left
         if (user_input=='a'){
           // clear song
-          ma_sound_uninit(&sound);
           // go left
           carousel_idx--; 
           // wrap around to end if needed
@@ -163,12 +187,10 @@ int main(){
             carousel_idx = songlist_len-1; 
           }
           // play song 
-          load_song(carousel_idx,songlist,&engine, &sound);
+          load_song(carousel_idx,songlist,&engine, &sound); 
         }
         // If key was D, go right
         else if (user_input=='d'){
-          // clear song
-          ma_sound_uninit(&sound);
           // go right
           carousel_idx++;
           // wrap around to start if needed
@@ -176,12 +198,12 @@ int main(){
             carousel_idx=0;
           }
           // play song 
-          load_song(carousel_idx,songlist,&engine, &sound);
+          load_song(carousel_idx,songlist,&engine, &sound); 
         }
         // If key was space, confirm selection
         else if (user_input==' '){ // confirm
           // clear song
-          ma_sound_uninit(&sound);
+          conditional_uninit(&sound);
           game_state = IN_GAME;
           break;
         }
@@ -191,6 +213,9 @@ int main(){
         }
       }
     }
+    /* State 3: Gameplay (the meat)
+
+    */
     if (game_state == IN_GAME){
       printf("Welcome to the game!\n");
       break;
@@ -206,8 +231,8 @@ int main(){
     }
   }
   // clear sound and engine
-  ma_sound_uninit(&sound);
-  ma_engine_uninit(&engine); 
+  conditional_uninit(&sound);
+  ma_engine_uninit(&engine);
   // goodbye
   return 0;
 }
