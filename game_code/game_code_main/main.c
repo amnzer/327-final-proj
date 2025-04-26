@@ -18,11 +18,12 @@
 #define FORESIGHT_DISTANCE DISPLAY_RESOLUTION*28
 #define HINDSIGHT_DISTANCE DISPLAY_RESOLUTION*4
 #define MAX_HIT_OBJS 360 // maximum numebr of allowable hitobjects in song. (360 isn't that much, but ra is tiht)
-
+#define PRINT_PERIOD 20 // Min period in ms before screen can refresh
 
 // 1. Common Objects
 // a. The grid
 char grid[32][8];
+int grid_refresh_timestamp = 0;
 // b. The song class
 struct Song { // note that, in the actual game, you wont have much room to print
   // You can trigger playback though?
@@ -97,7 +98,7 @@ void clear_input_buffer() {
 }
 void reset_grid(){
   for (int i=0;i<32;i++){
-    for (int j=0;j<32;j++){
+    for (int j=0;j<8;j++){
       grid[i][j]='x';
     }
   }
@@ -166,6 +167,9 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   //printf("Song initted\n");
   song_initialized=1;
   //printf("Sound started yippee\n");
+}
+int current_song_time_ms(ma_uint32 frame, ma_uint32 sr){
+  return ((frame * 250)/sr)*4; // !impt: tradeoff between memory and resolution is key asf. see readme
 }
 // c. Relevant variables concerning sound
 ma_uint32 sr; // sample rate of current song
@@ -241,6 +245,12 @@ int main(){
     if (game_state == GAME_START){
       printf("%s",welcome_msg);
       printf("Enter e to continue! Or, enter x to exit...\n");
+      /*
+      printf("testing 1\n");
+      printf("testing 2\n");
+      printf("\033[2A"); //go up
+      printf("hi\n");
+      */
       while (1){ // while loop about responding to a specific button
         // get a key
         user_input = getchar();
@@ -346,7 +356,7 @@ int main(){
       while (ma_sound_at_end(&sound)==MA_FALSE){
         // 1/5 find current time
         frame = ma_engine_get_time_in_pcm_frames(&engine);
-        time_ms = ((frame * 250)/sr)*4; // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
+        time_ms = current_song_time_ms(frame,sr); // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
         
         // 2a/5 check if a note just entered the window
         if (FORESIGHT_DISTANCE+time_ms>forward_time){
@@ -358,7 +368,7 @@ int main(){
           else{
             forward_time = get_note_time_ms(hitobjs[forward_index]);
           }
-          printf("Time: %d | Window %d | Next time: %d |Idx: %d|\n",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
+          //printf("Time: %d | Window %d | Next time: %d |Idx: %d|\n",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
           //printf("Forward advance at %d ms with %d ms window. Next time: %d\n. Idx: %d",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
         }
         // 2b/5 check if a note just exited the window
@@ -380,23 +390,25 @@ int main(){
           else{
             backward_time = get_note_time_ms(hitobjs[backward_index]);
           }
-          printf("Time: %d | Window -%d | Next time: %d |Idx: %d|\n",time_ms,HINDSIGHT_DISTANCE,backward_time,backward_index);
+          //printf("Time: %d | Window -%d | Next time: %d |Idx: %d|\n",time_ms,HINDSIGHT_DISTANCE,backward_time,backward_index);
         }
         // 3/5: draw the window
         // 3a/5: prepare the window
         // !impt: especially on the actual msp, you might need to force a global offset due to lag
         // only update the board if you need to
-        if (change>0){
-          change=0;
+        frame = ma_engine_get_time_in_pcm_frames(&engine);
+        if (current_song_time_ms(frame,sr)>grid_refresh_timestamp+PRINT_PERIOD){
           reset_grid();
           for (window_idx=backward_index; window_idx<forward_index; window_idx++){
             // first, get the row you're in (note that below implementation freezes time_ms)
-            row = (time_ms+FORESIGHT_DISTANCE)/DISPLAY_RESOLUTION;
-            printf("Row: %d",row);
+            row = (time_ms+FORESIGHT_DISTANCE-get_note_time_ms(hitobjs[window_idx]))/DISPLAY_RESOLUTION;
+            //printf("Row: %d",row);
             draw_note(row,1);
           }
           //3b/5: print the window
           // putchar is fast, printf is not
+          // ansi reset here
+           // move cursor up 32 lines
           for (int a=0; a<32; a++){
             for (int b=0; b<8; b++){
               putchar(grid[a][b]);
@@ -404,7 +416,11 @@ int main(){
             putchar('\n');
           }
           fflush(stdout);
+          printf("\033[32A\r");// go up again
+          frame = ma_engine_get_time_in_pcm_frames(&engine); // current song time in PCM
+          grid_refresh_timestamp = current_song_time_ms(frame,sr);
         }
+        
       }
       //4/4: measure hits
       //printf("Final time: %d\n",time_ms);
