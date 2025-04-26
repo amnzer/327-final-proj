@@ -26,3 +26,11 @@ Each song is ~1.3kB:
 
 - Quickly starting/stopping songs during a carousel
 - Synchronizing the start of a song and the start of a beat
+- Writing to the LED array at a good frequency (>70Hz reliably)
+- Calculating time from packet number
+
+    For audio that is sampled at 44.1k, and if you calculate ms like this: (pcm_frame\*1000)/sr, you have a max of 2\*32/44.1M = 97.4 seconds of audio you can portray. In other words you must sacrifice timing resolution (which = 1/n seconds, for pcm_frames\*n), for memory efficiency.
+
+    Actually alternatively can just use floats instead of going for ints only...
+    Or just divide sr by 4 beforehand and fix your math accordingly...
+    

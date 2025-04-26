@@ -21,7 +21,9 @@
 
 
 // 1. Common Objects
-// a. The song class
+// a. The grid
+char grid[32][8];
+// b. The song class
 struct Song { // note that, in the actual game, you wont have much room to print
   // You can trigger playback though?
   const char *artist;
@@ -67,8 +69,7 @@ char *path_to_song;
 unsigned int song_length;
 
 
-// b. The game states
-
+// c. The game states
 enum Game_States {
   GAME_START,
   SONG_SELECT,
@@ -78,23 +79,42 @@ enum Game_States {
 };
 
 enum Game_States game_state = GAME_START; // initialize game state
-// c. Special Strings
+// d. Special Strings
 // Welcome message. Sources: 
 // https://patorjk.com/software/taag/
 // https://tomeko.net/online_tools/cpp_text_escape.php?
 char welcome_msg[] = "  _      __    __                     __         ___          __    ____     __             __\n | | /| / /__ / /______  __ _  ___   / /____    / _ )___ ___ / /_  / __/__ _/ /  ___ ____  / /\n | |/ |/ / -_) / __/ _ \\/  ' \\/ -_) / __/ _ \\  / _  / -_) -_) __/ _\\ \\/ _ `/ _ \\/ -_) __/ /_/ \n |__/|__/\\__/_/\\__/\\___/_/_/_/\\__/  \\__/\\___/ /____/\\__/\\__/\\__/ /___/\\_,_/_.__/\\__/_/   (_) \n\n";
 
-// d. Misc Variables
+// e. Misc Variables
 char user_input = '\0'; // tracks user input
 int prev_carousel_idx = 0; 
 int carousel_idx = 0;
 
-// e. Helper functions for strings
+// f. Helper functions for strings
 void clear_input_buffer() {
   int c;
   while ((c = getchar()) != '\n') { } // read until you hit the end
 }
-
+void reset_grid(){
+  for (int i=0;i<32;i++){
+    for (int j=0;j<32;j++){
+      grid[i][j]='x';
+    }
+  }
+}
+void draw_note(short x, short pad){
+  // assuming that x and y are in the board, draw a square around x and y
+  // x is depth, y is width
+  short y = 3; // arbitrary start column!!
+  for (int i = x-pad; i<x+pad+1; i++){
+    for (int j = y-pad; j<y+pad+1; j++){
+      if (0<=i && i<32){ // 0<=i<32 aint legal
+        grid[i][j] = 'O';
+      }
+    }
+  }
+  grid[x][y] = '*';
+}
 // 2. Sound
 // a. Playback
 unsigned short song_initialized = 0; //true if song is playing
@@ -127,10 +147,10 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   // start playback at preview time
   // // part 1: algebra
   float time_to_go_to = prevyew_time/1000.0; // preview time is in ms
-  ma_uint64 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
-  ma_uint64 frameToSeek;
+  ma_uint32 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
+  ma_uint32 frameToSeek;
   if (preview!=0){
-    frameToSeek = (ma_uint64)(time_to_go_to * sr);
+    frameToSeek = (ma_uint32)(time_to_go_to * sr);
   }
   else{
     frameToSeek = 0;
@@ -148,25 +168,47 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   //printf("Sound started yippee\n");
 }
 // c. Relevant variables concerning sound
-ma_uint64 sr; // sample rate of current song
-ma_uint64 frame; // what PCM frame the song is at
+ma_uint32 sr; // sample rate of current song
+ma_uint32 frame; // what PCM frame the song is at
 int time_ms; //  what time, in ms, the song is currently at
 
 // 3. Gameplay
 // 3.a. Gameplay variables
+// 3.a.1 Song variables
 unsigned short forward_index = 0; // index of the next note that will enter the hit window
 unsigned short backward_index = 0; // index of the next note that will leave the hit window
-int forward_time;
-int backward_time;
+unsigned short window_idx; // for iterating through window
+short row; // for grid iteration
+int forward_time; // time corresponding to forward_idx
+int backward_time; // time corresponding to backward_idx
+short change = 1; // if the board state should change
 unsigned short song_note_cnt;// number of notes in the song
 unsigned int *hitobjs;
 struct Song *song;
+// 3.a.2. Performance Variables
+short combo=0;
+short maxcombo=0;
+float accuracy=100;
+short score=0;
+short perfects=0;
+short goods=0;
+short oks=0; 
+short misses=0;
 // 3.b. Parsing hit objects
 unsigned int has_been_hit(unsigned int hitobj){
   return (hitobj & (1<<31)) == 1<<31; // see game_readme_technical
 }
 unsigned int get_note_time_ms(unsigned int hitobj){
   return (hitobj&0b1111111111111111111); // 19 ones. see game_readme_technical
+}
+// 3.c. Calculating metrics
+float measure_accuracy(){
+  // perfects are worth 100, goods 50, oks 25, miss 0
+  return (perfects+0.5*goods+0.25*oks)/(perfects+goods+oks+misses);
+}
+int measure_score(float accuracy, int maxcombo){
+  float total_notes = perfects+goods+oks+misses;
+  return (int) (40*(maxcombo/total_notes)+60*accuracy); // 40 from combo, 60 from acc out of 100. god knows nobody getting 100 tho
 }
 // later on you will be addin more boolfuncs for finding note type, color, direction, etc.
 
@@ -281,7 +323,8 @@ int main(){
       // greet the player
       printf("Welcome to the game!\n");
       usleep(500000); // 0.5s sleep. Want extra long sleep b4 game starts
-      
+      // reset grid
+      reset_grid();
       // load the song
       load_song(carousel_idx,songlist,&engine, &sound,0);
       sr  = ma_engine_get_sample_rate(&engine); // sample rate of selected song
@@ -301,13 +344,14 @@ int main(){
       // core loop
       printf("Forward time init: %d\n",forward_time);
       while (ma_sound_at_end(&sound)==MA_FALSE){
-       // printf("Forward time now: %d\n",forward_time);
+        // 1/5 find current time
         frame = ma_engine_get_time_in_pcm_frames(&engine);
-        time_ms = (frame * 1000)/sr; // this is probably correct
-        // check if you need to update the next approaching note
-        //printf("%d, %d\n", time_ms, forward_time);
+        time_ms = ((frame * 250)/sr)*4; // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
+        
+        // 2a/5 check if a note just entered the window
         if (FORESIGHT_DISTANCE+time_ms>forward_time){
           forward_index +=1;
+          change = 1;
           if (forward_index == song_note_cnt){
             forward_time = 0x0FFFFFFF; // set to ~inf; there is no next note
           }
@@ -317,28 +361,54 @@ int main(){
           printf("Time: %d | Window %d | Next time: %d |Idx: %d|\n",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
           //printf("Forward advance at %d ms with %d ms window. Next time: %d\n. Idx: %d",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
         }
-        if (backward_time-HINDSIGHT_DISTANCE<time_ms){
+        // 2b/5 check if a note just exited the window
+        if (backward_time+HINDSIGHT_DISTANCE<time_ms){
           // this means something just left.
-          // want to check if the note was hit
-          //if (has_been_hit(hitobj))
+          if (has_been_hit(hitobjs[backward_index])==0){ // if hasn't been hit
+            combo = 0;
+            misses+=1;
+            // no need for real time acc. but if you wanted it:
+            // - reset accuracy
+            // - reset combo
+            // - modify score
+          }
           backward_index+=1;
+          change = 1;
           if (backward_index == song_note_cnt){
             backward_time = 0x0FFFFFFF; // set to ~inf; there is no next note
           }
           else{
             backward_time = get_note_time_ms(hitobjs[backward_index]);
           }
-
+          printf("Time: %d | Window -%d | Next time: %d |Idx: %d|\n",time_ms,HINDSIGHT_DISTANCE,backward_time,backward_index);
         }
-        // functions to find nth 
-        // usleep(10000);
-        // below, the diffs are sometimes 10, sometimes 20
-        //printf("Frame: %d, sr: %d, diff: %d\n",frame,sr,(ma_uint32)ma_engine_get_time_in_pcm_frames(&engine)-frame);
-       //printf("Time (ms):%d \n",time_ms);
-         // sample rate of current song
+        // 3/5: draw the window
+        // 3a/5: prepare the window
+        // !impt: especially on the actual msp, you might need to force a global offset due to lag
+        // only update the board if you need to
+        if (change>0){
+          change=0;
+          reset_grid();
+          for (window_idx=backward_index; window_idx<forward_index; window_idx++){
+            // first, get the row you're in (note that below implementation freezes time_ms)
+            row = (time_ms+FORESIGHT_DISTANCE)/DISPLAY_RESOLUTION;
+            printf("Row: %d",row);
+            draw_note(row,1);
+          }
+          //3b/5: print the window
+          // putchar is fast, printf is not
+          for (int a=0; a<32; a++){
+            for (int b=0; b<8; b++){
+              putchar(grid[a][b]);
+            }
+            putchar('\n');
+          }
+          fflush(stdout);
+        }
       }
-      printf("Final time: %d\n",time_ms);
-      break;
+      //4/4: measure hits
+      //printf("Final time: %d\n",time_ms);
+      //break;
     }
     // Game State 5: Exit Game
     if (game_state == EXIT_GAME){
