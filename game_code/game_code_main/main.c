@@ -127,10 +127,10 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   // start playback at preview time
   // // part 1: algebra
   float time_to_go_to = prevyew_time/1000.0; // preview time is in ms
-  ma_uint32 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
-  ma_uint32 frameToSeek;
+  ma_uint64 sr = ma_engine_get_sample_rate(ma_enjine); // sample rate. calculated per song?
+  ma_uint64 frameToSeek;
   if (preview!=0){
-    frameToSeek = (ma_uint32)(time_to_go_to * sr);
+    frameToSeek = (ma_uint64)(time_to_go_to * sr);
   }
   else{
     frameToSeek = 0;
@@ -148,16 +148,16 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   //printf("Sound started yippee\n");
 }
 // c. Relevant variables concerning sound
-ma_uint32 sr; // sample rate of current song
-ma_uint32 frame; // what PCM frame the song is at
-unsigned int time_ms; //  what time, in ms, the song is currently at
+ma_uint64 sr; // sample rate of current song
+ma_uint64 frame; // what PCM frame the song is at
+int time_ms; //  what time, in ms, the song is currently at
 
 // 3. Gameplay
 // 3.a. Gameplay variables
 unsigned short forward_index = 0; // index of the next note that will enter the hit window
 unsigned short backward_index = 0; // index of the next note that will leave the hit window
-unsigned int forward_time;
-unsigned int backward_time;
+int forward_time;
+int backward_time;
 unsigned short song_note_cnt;// number of notes in the song
 unsigned int *hitobjs;
 struct Song *song;
@@ -291,7 +291,6 @@ int main(){
       song_note_cnt = song->num_notes;
       printf("num notes %d\n",song_note_cnt);
       printf("First num: %x\n",hitobjs[0]);
-
       // initialize/reset game variables
       forward_index = 0; // index of the next note that will enter the hit window
       backward_index = 0; // index of the next note that will leave the hit window
@@ -300,23 +299,37 @@ int main(){
       //printf("Wtf bruh\n");
       //printf("%x\n",hitobjs[0]);
       // core loop
+      printf("Forward time init: %d\n",forward_time);
       while (ma_sound_at_end(&sound)==MA_FALSE){
+       // printf("Forward time now: %d\n",forward_time);
         frame = ma_engine_get_time_in_pcm_frames(&engine);
         time_ms = (frame * 1000)/sr; // this is probably correct
         // check if you need to update the next approaching note
-        /*
-        if (FORESIGHT_DISTANCE+time_ms<forward_time){
+        //printf("%d, %d\n", time_ms, forward_time);
+        if (FORESIGHT_DISTANCE+time_ms>forward_time){
           forward_index +=1;
-          if (forward_index == song_len){
-            forward_time = 0xFFFFFFFF; // set to inf; there is no next note
+          if (forward_index == song_note_cnt){
+            forward_time = 0x0FFFFFFF; // set to ~inf; there is no next note
           }
           else{
             forward_time = get_note_time_ms(hitobjs[forward_index]);
           }
-          printf("Forward advance at %d ms with %d ms window. Next time: %d\n",time_ms,FORESIGHT_DISTANCE,hitobjs[forward_index]);
+          printf("Time: %d | Window %d | Next time: %d |Idx: %d|\n",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
+          //printf("Forward advance at %d ms with %d ms window. Next time: %d\n. Idx: %d",time_ms,FORESIGHT_DISTANCE,forward_time,forward_index);
         }
-          */
-        
+        if (backward_time-HINDSIGHT_DISTANCE<time_ms){
+          // this means something just left.
+          // want to check if the note was hit
+          //if (has_been_hit(hitobj))
+          backward_index+=1;
+          if (backward_index == song_note_cnt){
+            backward_time = 0x0FFFFFFF; // set to ~inf; there is no next note
+          }
+          else{
+            backward_time = get_note_time_ms(hitobjs[backward_index]);
+          }
+
+        }
         // functions to find nth 
         // usleep(10000);
         // below, the diffs are sometimes 10, sometimes 20
@@ -324,6 +337,7 @@ int main(){
        //printf("Time (ms):%d \n",time_ms);
          // sample rate of current song
       }
+      printf("Final time: %d\n",time_ms);
       break;
     }
     // Game State 5: Exit Game
