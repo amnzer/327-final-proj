@@ -171,8 +171,10 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   song_initialized=1;
   //printf("Sound started yippee\n");
 }
-int current_song_time_ms(ma_uint32 frame, ma_uint32 sr){
-  return ((frame * 250)/sr)*4; // !impt: tradeoff between memory and resolution is key asf. see readme
+int current_song_time_ms(ma_engine *enjine, ma_uint32 sr){
+  ma_uint32 frame = ma_engine_get_time_in_pcm_frames(enjine);
+  return (frame / sr) * 1000 + ((frame % sr) * 1000) / sr; // !impt: tradeoff between memory and resolution is key asf. see readme
+  // bro i forgot C has a modulus lool nvm no problems
 }
 // c. Relevant variables concerning sound
 ma_uint32 sr; // sample rate of current song
@@ -396,7 +398,7 @@ int main(){
       reset_grid();
       // load the song
       load_song(carousel_idx,songlist,&engine, &sound,0);
-      sr  = ma_engine_get_sample_rate(&engine); // sample rate of selected song
+      sr = ma_engine_get_sample_rate(&engine); // sample rate of selected song
       // get song struct, hit objects, and num of notes
       song = &songlist[carousel_idx];
       hitobjs = song->hit_objs;
@@ -417,9 +419,8 @@ int main(){
       //printf("Forward time init: %d\n",forward_time);
       while (ma_sound_at_end(&sound)==MA_FALSE){
         // 1/5 find current time
-        frame = ma_engine_get_time_in_pcm_frames(&engine);
-        time_ms = current_song_time_ms(frame,sr); // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
-        
+        time_ms = current_song_time_ms(&engine,sr); // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
+        printf("initial %d\n", (ma_uint32) ma_engine_get_time_in_pcm_frames(&engine));
         // 2a/5 check if a note just entered the window
         if (FORESIGHT_DISTANCE+time_ms>forward_time){
           forward_index +=1;
@@ -458,8 +459,10 @@ int main(){
         // 3a/5: prepare the window
         // !impt: especially on the actual msp, you might need to force a global offset due to lag
         // only update the board if you need to
-        frame = ma_engine_get_time_in_pcm_frames(&engine);
-        if (current_song_time_ms(frame,sr)>grid_refresh_timestamp+PRINT_PERIOD){
+        time_ms = current_song_time_ms(&engine,sr);
+        if (time_ms>grid_refresh_timestamp+PRINT_PERIOD){
+          printf("%d\n",time_ms);
+          /*
           reset_grid();
           for (window_idx=backward_index; window_idx<forward_index; window_idx++){
             // first, get the row you're in (note that below implementation freezes time_ms)
@@ -498,7 +501,9 @@ int main(){
           printf("\033[32A\r");
           //clear // not doing due to inconsistent behavior
           frame = ma_engine_get_time_in_pcm_frames(&engine); // current song time in PCM
-          grid_refresh_timestamp = current_song_time_ms(frame,sr);
+          */
+          grid_refresh_timestamp = current_song_time_ms(&engine,sr);
+          
         }
         
       
