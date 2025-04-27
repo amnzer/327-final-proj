@@ -195,12 +195,12 @@ struct Song *song;
 // 3.a.2. Performance Variables
 short combo=0;
 short maxcombo=0;
-float accuracy=100;
 short score=0;
 short perfects=0;
 short goods=0;
 short oks=0; 
 short misses=0;
+float accuracy;
 // 3.b. Parsing hit objects
 unsigned int has_been_hit(unsigned int hitobj){
   return (hitobj & (1<<31)) == 1<<31; // see game_readme_technical
@@ -211,12 +211,13 @@ unsigned int get_note_time_ms(unsigned int hitobj){
 char pressed; // stores if a keypress was registered from some key (msut define key later)
 // 3.c. Calculating metrics
 float measure_accuracy(){
+  // measures accuracy [0,1]
   // perfects are worth 100, goods 50, oks 25, miss 0
   return (perfects+0.5*goods+0.25*oks)/(perfects+goods+oks+misses);
 }
-int measure_score(float accuracy, int maxcombo){
+short measure_score(float accuracy, int maxcombo){
   float total_notes = perfects+goods+oks+misses;
-  return (int) (40*(maxcombo/total_notes)+60*accuracy); // 40 from combo, 60 from acc out of 100. god knows nobody getting 100 tho
+  return (short) (40*(maxcombo/total_notes)+60*accuracy); // 40 from combo, 60 from acc out of 100. god knows nobody getting 100 tho
 }
 // later on you will be addin more boolfuncs for finding note type, color, direction, etc.
 
@@ -407,6 +408,9 @@ int main(){
       backward_index = 0; // index of the next note that will leave the hit window
       forward_time = get_note_time_ms(hitobjs[forward_index]);
       backward_time = get_note_time_ms(hitobjs[backward_index]);
+      // hide inputs and enable RT reads
+      enable_raw_input();
+      set_nonblocking();
       //printf("Wtf bruh\n");
       //printf("%x\n",hitobjs[0]);
       // core loop
@@ -497,13 +501,16 @@ int main(){
           grid_refresh_timestamp = current_song_time_ms(frame,sr);
         }
         
-      }
+      
       // REMAINING TASKS:
       // 1. Add P,G,O zones (done)
       // 2. Measure hits
       // 3. acc logging
       // 4/4: measure hits
       if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
+        if (pressed == 'x'){ // i.e. leave
+          print("Cya next time\n");
+        }
         // timing calculation
         frame = ma_engine_get_time_in_pcm_frames(&engine);
         time_ms = current_song_time_ms(frame,sr);
@@ -527,13 +534,21 @@ int main(){
               // debug
               if (hit_result == 0){
                 combo = 0;
+                misses+=1; // again, shouldn't be handled here
                 printf("Hit result was 0. This shouldn't happen...\n");
                 break;
               }
             }
+          }
         }
-
       }
+      // clear grid
+      printf("\033[32A\r");
+      printf("\033[J");
+      // leave
+      printf("Going to report screen...\n");
+      game_state = REPORT_SCREEN;
+    }
       // print the last hit result on the final line. 
       // find out how to ambiently monitor hits
       // if a hit comes, do the 3 bin thing
@@ -544,6 +559,14 @@ int main(){
       // (EXT) **btw, you might want to trim songs to a certain length. so actually have a time limit instead of note count limit?**
       //printf("Final time: %d\n",time_ms);
       //break;
+    if (game_state == REPORT_SCREEN){
+      accuracy = measure_accuracy();
+      printf("How well you did:\n");
+      printf("Accuracy: %.2f",accuracy*100);
+      printf("Max combo: %d/%d",maxcombo,song_note_cnt);
+      printf("Overall score: %d", measure_score(accuracy,maxcombo));
+      printf("Thank you for playing! Now leave!");
+      break;
     }
     // Game State 5: Exit Game
     if (game_state == EXIT_GAME){
@@ -556,6 +579,7 @@ int main(){
     }
   }
   // clear sound and engine
+  disable_raw_input(); // if this is still on
   conditional_uninit(&sound);
   ma_engine_uninit(&engine);
   // goodbye
