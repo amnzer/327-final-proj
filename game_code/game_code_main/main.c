@@ -15,10 +15,11 @@
 
 // Gameplay Parameters
 #define DISPLAY_RESOLUTION 60 // how much time in ms one LED row takes up. Analogous to Approach Rate in osu (inversel so)
-#define FORESIGHT_DISTANCE DISPLAY_RESOLUTION*28
-#define HINDSIGHT_DISTANCE DISPLAY_RESOLUTION*4
+#define WINDOW_OFFSET 4 // this is where the perfect window begins, measured from the bottom of the board
+#define FORESIGHT_DISTANCE DISPLAY_RESOLUTION*29 // 29 leds are >0
+#define HINDSIGHT_DISTANCE DISPLAY_RESOLUTION*3 // 3 leds are <0 w.r.t realtime
 #define MAX_HIT_OBJS 360 // maximum numebr of allowable hitobjects in song. (360 isn't that much, but ra is tiht)
-#define PRINT_PERIOD 20 // Min period in ms before screen can refresh
+#define PRINT_PERIOD 30 // Min period in ms before screen can refresh
 
 // 1. Common Objects
 // a. The grid
@@ -352,7 +353,7 @@ int main(){
       //printf("Wtf bruh\n");
       //printf("%x\n",hitobjs[0]);
       // core loop
-      printf("Forward time init: %d\n",forward_time);
+      //printf("Forward time init: %d\n",forward_time);
       while (ma_sound_at_end(&sound)==MA_FALSE){
         // 1/5 find current time
         frame = ma_engine_get_time_in_pcm_frames(&engine);
@@ -409,19 +410,37 @@ int main(){
           // putchar is fast, printf is not
           // ansi reset here
            // move cursor up 32 lines
+           printf("\033[2J");
           for (int a=0; a<32; a++){
+            if (a==28 || a==29){ // special colors for some rows
+              printf(BLU); // perfect region
+            }
+            if (a==27 || a==30){
+              printf(GRN); // good region
+            }
+            if (a==26 || a==31){
+              printf(YEL); // ok region
+            }
             for (int b=0; b<8; b++){
               putchar(grid[a][b]);
+            }
+            if(a>26){ // stop the color from bleeding over
+              printf(RESET);
             }
             putchar('\n');
           }
           fflush(stdout);
-          printf("\033[32A\r");// go up again
+          //printf("\033[32A\r");
+          //clear // not doing due to inconsistent behavior
           frame = ma_engine_get_time_in_pcm_frames(&engine); // current song time in PCM
           grid_refresh_timestamp = current_song_time_ms(frame,sr);
         }
         
       }
+      // REMAINING TASKS:
+      // 1. Add P,G,O zones
+      // 2. Measure hits
+      // 3. 
       //4/4: measure hits
       //printf("Final time: %d\n",time_ms);
       //break;
