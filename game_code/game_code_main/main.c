@@ -2,6 +2,8 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 #include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
 
 // ANSI Colors
 #define RED   "\x1B[31m"
@@ -206,6 +208,7 @@ unsigned int has_been_hit(unsigned int hitobj){
 unsigned int get_note_time_ms(unsigned int hitobj){
   return (hitobj&0b1111111111111111111); // 19 ones. see game_readme_technical
 }
+char pressed; // stores if a keypress was registered from some key (msut define key later)
 // 3.c. Calculating metrics
 float measure_accuracy(){
   // perfects are worth 100, goods 50, oks 25, miss 0
@@ -217,7 +220,61 @@ int measure_score(float accuracy, int maxcombo){
 }
 // later on you will be addin more boolfuncs for finding note type, color, direction, etc.
 
-// 3.b. The display window
+// 3.d. Finding valid hit objects
+short first_valid_note_idx(short backward_idx, short forward_idx, unsigned int hitobjs[]){
+  // find the index of the first valid note. if none, return 1.
+  short idx = backward_idx;
+  while (idx<forward_idx){
+    if (!has_been_hit(hitobjs[idx])){
+      return idx;
+    }
+    idx++;
+  }
+  return -1;
+}
+short valid_idx; 
+short timediff; // time diff btwn hit time and perfect timing
+
+// 3.e. Calculate hit precision
+char perf_good_ok(short timediff){
+  if (timediff<=DISPLAY_RESOLUTION){
+    return 100; // perfect
+  }
+  if (timediff<=DISPLAY_RESOLUTION*2){
+    return 50; // good
+  }
+  if (timediff<=DISPLAY_RESOLUTION*3){
+    return 25; // ok
+  }
+  return 0; // shouldn't happen at all
+}
+char hit_result; // 100, 50, 25, 0
+
+void mark_note_as_hit(unsigned int hitobjs[],short idx){
+  hitobjs[idx] = hitobjs[idx] | 0x1<<31; // set 31st bit to 1
+}
+// 4. Reading from terminal
+// 4.a. Modify terminal settings
+struct termios termios_orig; // original terminal settings
+
+void disable_raw_input(){
+  tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_orig); // basically just reset terminal to original
+}
+
+void enable_raw_input(){
+  tcgetattr(STDIN_FILENO, &termios_orig); // save original params. have care that the func isn't run twice
+  atexit(disable_raw_input); // disable params after terminal exits (or else ur cooked upon ctrl+C prob)
+
+  struct termios new = termios_orig; // copies
+  new.c_lflag &= ~(ECHO | ICANON); // echo: repeat input. icanon: wait for enter
+  tcsetattr(STDIN_FILENO,TCSAFLUSH,&new); // write
+
+}
+// 4.b. Emable non-blocking reads
+void set_nonblocking() {
+  int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
+}
 // The Game
 int main(){
   //printf(RED "yippee\n" RESET);
@@ -402,15 +459,19 @@ int main(){
           reset_grid();
           for (window_idx=backward_index; window_idx<forward_index; window_idx++){
             // first, get the row you're in (note that below implementation freezes time_ms)
-            row = (time_ms+FORESIGHT_DISTANCE-get_note_time_ms(hitobjs[window_idx]))/DISPLAY_RESOLUTION;
+            if (!has_been_hit(hitobjs[window_idx])){
+              row = (time_ms+FORESIGHT_DISTANCE-get_note_time_ms(hitobjs[window_idx]))/DISPLAY_RESOLUTION;
+              draw_note(row,1);
+            }
             //printf("Row: %d",row);
-            draw_note(row,1);
+            // gng ur not checking if ntoe vanishes
+            
           }
           //3b/5: print the window
           // putchar is fast, printf is not
           // ansi reset here
            // move cursor up 32 lines
-           printf("\033[2J");
+           //printf("\033[2J");
           for (int a=0; a<32; a++){
             if (a==28 || a==29){ // special colors for some rows
               printf(BLU); // perfect region
@@ -430,7 +491,7 @@ int main(){
             putchar('\n');
           }
           fflush(stdout);
-          //printf("\033[32A\r");
+          printf("\033[32A\r");
           //clear // not doing due to inconsistent behavior
           frame = ma_engine_get_time_in_pcm_frames(&engine); // current song time in PCM
           grid_refresh_timestamp = current_song_time_ms(frame,sr);
@@ -438,10 +499,49 @@ int main(){
         
       }
       // REMAINING TASKS:
-      // 1. Add P,G,O zones
+      // 1. Add P,G,O zones (done)
       // 2. Measure hits
-      // 3. 
-      //4/4: measure hits
+      // 3. acc logging
+      // 4/4: measure hits
+      if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
+        // timing calculation
+        frame = ma_engine_get_time_in_pcm_frames(&engine);
+        time_ms = current_song_time_ms(frame,sr);
+        if (backward_time!=forward_time){ // can only read from window if window is valid. 
+           valid_idx = first_valid_note_idx(backward_time,forward_time,hitobjs);
+            if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
+              // calculate perfect/good/ok
+              timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
+              timediff = timediff>-1? timediff: -timediff;// abs value
+              hit_result = perf_good_ok(timediff);
+              // modify score results
+              if (hit_result == 100) {perfects+=1;}
+              if (hit_result == 50) {goods+=1;}
+              if (hit_result == 25) {oks+=1;}
+              if (hit_result >0){ // constant tasks upon object hit
+                combo+=1;
+                maxcombo = combo>maxcombo ? combo: maxcombo;
+                // mark note as hit
+                mark_note_as_hit(hitobjs,valid_idx);
+              }
+              // debug
+              if (hit_result == 0){
+                combo = 0;
+                printf("Hit result was 0. This shouldn't happen...\n");
+                break;
+              }
+            }
+        }
+
+      }
+      // print the last hit result on the final line. 
+      // find out how to ambiently monitor hits
+      // if a hit comes, do the 3 bin thing
+      // the 3 bin thing should result in a print and a combo/maxcombo/accuracy modification.(EXT) (maxcombo only upon break/end?)
+
+      // part 4 and beyond:
+      // (EXT) calculate score at end 
+      // (EXT) **btw, you might want to trim songs to a certain length. so actually have a time limit instead of note count limit?**
       //printf("Final time: %d\n",time_ms);
       //break;
     }

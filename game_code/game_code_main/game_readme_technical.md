@@ -15,7 +15,7 @@ Each song is ~1.3kB:
 
 - In game_code/charting/read_osu.ipynb, objects will be represented as ints. This is how:
 
-  Bit 31: Tracks if note has been hit (dissapears if so)
+  Bit 31: Tracks if note has been hit
   Bit 30: What channel notes are in (0=left, 1=right)
   Bits 29,28,27,26: Tracks note type (29: indicates spinner, 27: slider, 26: circle. possible 28: repeat slider but not implemented yet)
   Bit 25,24,23,22: Tracks note color (also not implemented yet)
