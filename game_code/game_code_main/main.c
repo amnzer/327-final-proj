@@ -507,9 +507,13 @@ int main(){
       // 2. Measure hits
       // 3. acc logging
       // 4/4: measure hits
+      /*
       if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
+        printf("you read\n");
         if (pressed == 'x'){ // i.e. leave
-          print("Cya next time\n");
+          game_state = EXIT_GAME;
+          printf("Rage quit\n");
+          break;
         }
         // timing calculation
         frame = ma_engine_get_time_in_pcm_frames(&engine);
@@ -522,9 +526,19 @@ int main(){
               timediff = timediff>-1? timediff: -timediff;// abs value
               hit_result = perf_good_ok(timediff);
               // modify score results
-              if (hit_result == 100) {perfects+=1;}
-              if (hit_result == 50) {goods+=1;}
-              if (hit_result == 25) {oks+=1;}
+              if (hit_result == 100) {
+                perfects+=1;
+                printf("\nPerfect");
+                printf("\033[A");
+              }
+              if (hit_result == 50) {
+                goods+=1;
+                printf("\nGood");
+                printf("\033[A");}
+              if (hit_result == 25) {
+                oks+=1;
+                printf("\nOk");
+                printf("\033[A");}
               if (hit_result >0){ // constant tasks upon object hit
                 combo+=1;
                 maxcombo = combo>maxcombo ? combo: maxcombo;
@@ -541,10 +555,11 @@ int main(){
             }
           }
         }
+          */
       }
       // clear grid
-      printf("\033[32A\r");
-      printf("\033[J");
+      //printf("\033[32A\r");
+      //printf("\033[J");
       // leave
       printf("Going to report screen...\n");
       game_state = REPORT_SCREEN;
@@ -562,18 +577,17 @@ int main(){
     if (game_state == REPORT_SCREEN){
       accuracy = measure_accuracy();
       printf("How well you did:\n");
-      printf("Accuracy: %.2f",accuracy*100);
-      printf("Max combo: %d/%d",maxcombo,song_note_cnt);
-      printf("Overall score: %d", measure_score(accuracy,maxcombo));
-      printf("Thank you for playing! Now leave!");
-      break;
+      printf("Accuracy: %.2f\n",accuracy*100);
+      printf("Max combo: %d/%d\n",maxcombo,song_note_cnt);
+      printf("Overall score: %d\n", measure_score(accuracy,maxcombo));
+      printf("Thank you for playing! Now leave!\n");
     }
     // Game State 5: Exit Game
     if (game_state == EXIT_GAME){
       printf("Thanks for playing!\n\n");
       break;
     }
-    else{
+    else{ // how do you even get here?
       printf("No mans land...\n\n");
       break;
     }
