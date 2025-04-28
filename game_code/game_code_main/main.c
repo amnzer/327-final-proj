@@ -178,7 +178,8 @@ int current_song_time_ms(ma_engine *enjine, ma_uint32 sr){
 }
 // c. Relevant variables concerning sound
 ma_uint32 sr; // sample rate of current song
-ma_uint32 frame; // what PCM frame the song is at
+ma_uint32 frame; // what PCM frame the engine is at
+ma_uint32 startframe; // used for determining songtime
 int time_ms; //  what time, in ms, the song is currently at
 
 // 3. Gameplay
