@@ -303,7 +303,7 @@ int main(){
         User can proceed to SONG_SELECT, or EXIT_GAME.
     */
     if (game_state == GAME_START){
-      printf("%s",welcome_msg);
+      printf(CYN"%s"RESET,welcome_msg);
       printf("Enter e to continue! Or, enter x to exit...\n");
       /*
       printf("testing 1\n");
@@ -515,7 +515,6 @@ int main(){
         // timing calculation
         time_ms = get_song_time_ms(&sound);
         valid_idx = first_valid_note_idx(backward_index,forward_index,hitobjs);
-        printf("%d\n",valid_idx);
         if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
           // calculate perfect/good/ok
           timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
@@ -544,20 +543,18 @@ int main(){
           if (hit_result == 0){
             combo = 0;
             misses+=1; // again, shouldn't be handled here
-            //printf("Hit result was 0. Note time %x, note %x, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
+            printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
             break;
           }
         }
       }
-          
-          
     }
-      // clear grid
-      //printf("\033[32A\r");
-      //åprintf("\033[J");
-      // leave
-      printf("Going to report screen...\n");
-      game_state = REPORT_SCREEN;
+    // clear grid
+    //printf("\033[32A\r");
+    //printf("\033[J");
+    // leave
+    printf("Going to report screen...\n");
+    game_state = REPORT_SCREEN;
     }
       // print the last hit result on the final line. 
       // find out how to ambiently monitor hits
