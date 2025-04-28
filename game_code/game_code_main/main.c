@@ -88,7 +88,7 @@ enum Game_States game_state = GAME_START; // initialize game state
 // https://patorjk.com/software/taag/
 // https://tomeko.net/online_tools/cpp_text_escape.php?
 char welcome_msg[] = "  _      __    __                     __         ___          __    ____     __             __\n | | /| / /__ / /______  __ _  ___   / /____    / _ )___ ___ / /_  / __/__ _/ /  ___ ____  / /\n | |/ |/ / -_) / __/ _ \\/  ' \\/ -_) / __/ _ \\  / _  / -_) -_) __/ _\\ \\/ _ `/ _ \\/ -_) __/ /_/ \n |__/|__/\\__/_/\\__/\\___/_/_/_/\\__/  \\__/\\___/ /____/\\__/\\__/\\__/ /___/\\_,_/_.__/\\__/_/   (_) \n\n";
-
+char perf_msg[] = "                                                                         \n ________________________________________________________________________\n/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/\n \\ \\/ /__  __ ______  / _ \\___ ____/ _/__  ______ _  ___ ____  _______   \n  \\  / _ \\/ // / __/ / ___/ -_) __/ _/ _ \\/ __/  ' \\/ _ `/ _ \\/ __/ -_)  \n  /_/\\___/\\_,_/_/   /_/   \\__/_/ /_/ \\___/_/ /_/_/_/\\_,_/_//_/\\__/\\__/   \n ________________________________________________________________________\n/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/___/\n                                                                         \n";
 // e. Misc Variables
 char user_input = '\0'; // tracks user input
 int prev_carousel_idx = 0; 
@@ -164,7 +164,7 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
     printf("Couldn't find preview time... !\n");
   }
   usleep(80000);
-  printf("Now playing: %s by %s\n\n", songname, artist);
+  printf("Now playing: %s by %s\n", songname, artist);
   // if all is well...
   ma_sound_start(ma_sownd);
   //printf("Song initted\n");
@@ -279,6 +279,7 @@ void set_nonblocking() {
 }
 // The Game
 int main(){
+  //printf("%s\n",perf_msg);
   //printf(RED "yippee\n" RESET);
   //printf("Foresight/hindsight %d %d\n",FORESIGHT_DISTANCE,HINDSIGHT_DISTANCE);
   
@@ -298,62 +299,59 @@ int main(){
   }
   // Main game loop
   while (1){
-    /*Phase 1: Game start
+   switch (game_state){ // 1 of 5 game states
+   
+    /* State 1/5: Game start
         User is greeted with a welcome message.
         User can proceed to SONG_SELECT, or EXIT_GAME.
     */
-    if (game_state == GAME_START){
-      printf(CYN"%s"RESET,welcome_msg);
+    case GAME_START:
+      // print a nice welcome message
+      printf(CYN"%s"RESET, welcome_msg);
       printf("Enter e to continue! Or, enter x to exit...\n");
-      /*
-      printf("testing 1\n");
-      printf("testing 2\n");
-      printf("\033[2A"); //go up
-      printf("hi\n");
-      */
+      // monitor button input
       while (1){ // while loop about responding to a specific button
         // get a key
         user_input = getchar();
-        clear_input_buffer();
-        // proceed
+        clear_input_buffer(); // just get one key
+        // e to proceed (go to SONG_SELECT)
         if(user_input == 'e'){
           game_state = SONG_SELECT;
           printf("Going to song select...\n\n");
           load_song(0,songlist,&engine, &sound,1); // should be random, not zero
           break;
         }
-        // enter x to leave
+        // x to leave (go to EXIT_GAME)
         else if (user_input == 'x'){
           game_state = EXIT_GAME;
           break;
         }
-        // you messed up
+        // neither
         else{
           printf("Not e, and not x...\n");
         }
       }
-    }
-    /* Game State 2:  Song Select
-          User is given a carousel of songs to pick from. User can hover over any song
-          User hears the song, starting at a highlighted section, and sees the name of the song.
+      break;
+    
+    /* State 2/5: Song Select
+        User is given a carousel of songs to pick from. User can hover over any song.
+        User then hears the song, starting at a highlighted section, and sees the name of the song.
     */
+    case SONG_SELECT:
     // How this might work on the MSP:
     // 1. Fetch random start song
     // // Keep track of millisecond time since song start, then get left 3 bits
     // // Use an LFSR and XOR it with a floating number (e.g. TIMA0->VALUE)
     // 2. Play random start song
     // // Find out if you can play starting at a specific time in ms using the audio chip
-    if (game_state == SONG_SELECT){
       printf("Welcome to song select! Enter A and D to scroll through songs. Enter space to confirm\n");
       while (1){ // Carousel
         // get a key
-        printf("Carousel idx: %d\n",carousel_idx);
+        printf("Song %d of %d\n",carousel_idx+1,songlist_len);
         user_input = getchar();
         clear_input_buffer();
         // If key was A, go left
         if (user_input=='a'){
-          // clear song
-          // go left
           carousel_idx--; 
           // wrap around to end if needed
           if (carousel_idx<0){
@@ -364,7 +362,6 @@ int main(){
         }
         // If key was D, go right
         else if (user_input=='d'){
-          // go right
           carousel_idx++;
           // wrap around to start if needed
           if (carousel_idx==songlist_len){ 
@@ -385,35 +382,41 @@ int main(){
           printf("Invalid input bruh\n");
         }
       }
-    }
+      break;
     /* State 3: Gameplay (the meat)
 
     */
-    if (game_state == IN_GAME){
+    case IN_GAME:
       // greet the player
       printf("Welcome to the game!\n");
       usleep(500000); // 0.5s sleep. Want extra long sleep b4 game starts
+      
       // reset grid
       reset_grid();
+
       // load the song
       load_song(carousel_idx,songlist,&engine, &sound,0);
       sr = ma_engine_get_sample_rate(&engine); // sample rate of selected song
+
       // get song struct, hit objects, and num of notes
       song = &songlist[carousel_idx];
       hitobjs = song->hit_objs;
       song_note_cnt = song->num_notes;
-      printf("num notes %d\n",song_note_cnt);
-      printf("First num: %x\n",hitobjs[0]);
+      //printf("num notes %d\n",song_note_cnt);
+      //printf("First num: %x\n",hitobjs[0]);
+
       // initialize/reset game variables
       forward_index = 0; // index of the next note that will enter the hit window
       backward_index = 0; // index of the next note that will leave the hit window
       forward_time = get_note_time_ms(hitobjs[forward_index]);
       backward_time = get_note_time_ms(hitobjs[backward_index]);
+
       // hide inputs and enable RT reads
       enable_raw_input();
       set_nonblocking();
       //printf("Wtf bruh\n");
       //printf("%x\n",hitobjs[0]);
+
       // core loop
       //printf("Forward time init: %d\n",forward_time);
       while (ma_sound_at_end(&sound)==MA_FALSE){
@@ -454,8 +457,8 @@ int main(){
           }
           //printf("Time: %d | Window -%d | Next time: %d |Idx: %d|\n",time_ms,HINDSIGHT_DISTANCE,backward_time,backward_index);
         }
-        // 3/5: draw the window
-        // 3a/5: prepare the window
+        // 3/4: draw the window
+        // 3a/4: prepare the window
         // !impt: especially on the actual msp, you might need to force a global offset due to lag
         // only update the board if you need to
         time_ms = get_song_time_ms(&sound);
@@ -473,7 +476,7 @@ int main(){
             // gng ur not checking if ntoe vanishes
             
           }
-          //3b/5: print the window
+          //3b/4: print the window
           // putchar is fast, printf is not
           // ansi reset here
            // move cursor up 32 lines
@@ -503,59 +506,58 @@ int main(){
           
         }
         
-      // 4/4: measure hits
-      
-      if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
-        //printf("you read\n");
-        if (pressed == 'x'){ // i.e. leave
-          game_state = EXIT_GAME;
-          printf("Rage quit\n");
-          break;
-        }
-        // timing calculation
-        time_ms = get_song_time_ms(&sound);
-        valid_idx = first_valid_note_idx(backward_index,forward_index,hitobjs);
-        if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
-          // calculate perfect/good/ok
-          timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
-          timediff = timediff>-1? timediff: -timediff;// abs value
-          hit_result = perf_good_ok(timediff);
-          // modify score results
-          if (hit_result == 100) {
-            perfects+=1;
-            printf("Perfect\r");
+        // 4/4: measure hits
+        
+        if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
+          //printf("you read\n");
+          if (pressed == 'x'){ // i.e. leave
+            game_state = EXIT_GAME;
+            printf("Rage quit?\n");
+            break;
           }
-          if (hit_result == 50) {
-            goods+=1;
-            printf("Good\r");
-          }
-          if (hit_result == 25) {
-            oks+=1;
-            printf("Ok\r");
-          }
-          if (hit_result >0){ // constant tasks upon object hit
+          // timing calculation
+          time_ms = get_song_time_ms(&sound);
+          valid_idx = first_valid_note_idx(backward_index,forward_index,hitobjs);
+          if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
+            // calculate perfect/good/ok
+            timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
+            timediff = timediff>-1? timediff: -timediff;// abs value
+            hit_result = perf_good_ok(timediff);
+            // modify score results
+            if (hit_result == 100) {
+              perfects+=1;
+              printf("Perfect\r");
+            }
+            if (hit_result == 50) {
+              goods+=1;
+              printf("Good\r");
+            }
+            if (hit_result == 25) {
+              oks+=1;
+              printf("Ok\r");
+            }
+            // hit too early
+            if (hit_result == 0){
+              combo = 0;
+              misses+=1; // actually whatever just handle the entire input who caress who cares
+              printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
+             //break;
+            }
+            // constant tasks
             combo+=1;
             maxcombo = combo>maxcombo ? combo: maxcombo;
             // mark note as hit
             mark_note_as_hit(hitobjs,valid_idx);
           }
-          // debug
-          if (hit_result == 0){
-            combo = 0;
-            misses+=1; // again, shouldn't be handled here
-            printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
-            break;
-          }
         }
       }
-    }
-    // clear grid
-    //printf("\033[32A\r");
-    //printf("\033[J");
-    // leave
-    printf("Going to report screen...\n");
-    game_state = REPORT_SCREEN;
-    }
+      // clear grid
+      //printf("\033[32A\r");
+      //printf("\033[J");
+      // leave
+      printf("Going to report screen...\n");
+      game_state = REPORT_SCREEN;
+      break;
       // print the last hit result on the final line. 
       // find out how to ambiently monitor hits
       // if a hit comes, do the 3 bin thing
@@ -565,28 +567,53 @@ int main(){
       // (EXT) **btw, you might want to trim songs to a certain length. so actually have a time limit instead of note count limit?**
       //printf("Final time: %d\n",time_ms);
       //break;
-    if (game_state == REPORT_SCREEN){
+    case REPORT_SCREEN:
       accuracy = measure_accuracy();
-      printf("How well you did:\n");
-      printf("Accuracy: %.2f\n",accuracy*100);
-      printf("Max combo: %d/%d\n",maxcombo,song_note_cnt);
-      printf("Overall score: %d\n", measure_score(accuracy,maxcombo));
-      printf("Thank you for playing! Now leave!\n");
-    }
+      printf(CYN"%s:\n"RESET,perf_msg);
+      printf(RED"Accuracy: %.2f\n"RESET,accuracy*100);
+      printf(GRN"Perfect %d | Good: %d | Ok: %d\n"RESET,perfects,goods,oks);
+      printf(MAG"Max combo: %d/%d\n"RESET,maxcombo,song_note_cnt);
+      printf(CYN"Overall score: %d\n"RESET, measure_score(accuracy,maxcombo));
+      printf("Thank you for playing! Enter x to leave, and e to select a new song!\n\n");
+      // literally the exact same as part 1. would wrap in a function btw.
+      while (1){ // while loop about responding to a specific button
+        // get a key
+        user_input = getchar();
+        clear_input_buffer(); // just get one key
+        // e to proceed (go to SONG_SELECT)
+        if(user_input == 'e'){
+          game_state = SONG_SELECT;
+          printf("Going to song select...\n\n");
+          load_song(0,songlist,&engine, &sound,1); // should be random, not zero
+          break;
+        }
+        // x to leave (go to EXIT_GAME)
+        else if (user_input == 'x'){
+          game_state = EXIT_GAME;
+          break;
+        }
+        // neither
+        else{
+          printf("Not e, and not x...\n");
+        }
+      }
+      game_state = EXIT_GAME;
+      break;
     // Game State 5: Exit Game
-    if (game_state == EXIT_GAME){
+    case EXIT_GAME:
       printf("Thanks for playing!\n\n");
       break;
-    }
-    else{ // how do you even get here?
+    default: // how do you even get here?
       printf("No mans land...\n\n");
       break;
-    }
-  }
+    } // end switch statement
+  } // end while (1)
+
   // clear sound and engine
   disable_raw_input(); // if this is still on
   conditional_uninit(&sound);
   ma_engine_uninit(&engine);
+
   // goodbye
   return 0;
 }
