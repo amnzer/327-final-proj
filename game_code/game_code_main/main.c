@@ -171,10 +171,8 @@ void load_song(int idx, struct Song song_array[], ma_engine *ma_enjine, ma_sound
   song_initialized=1;
   //printf("Sound started yippee\n");
 }
-int current_song_time_ms(ma_engine *enjine, ma_uint32 sr){
-  ma_uint32 frame = ma_engine_get_time_in_pcm_frames(enjine);
-  return (frame / sr) * 1000 + ((frame % sr) * 1000) / sr; // !impt: tradeoff between memory and resolution is key asf. see readme
-  // bro i forgot C has a modulus lool nvm no problems
+ma_uint32 get_song_time_ms(ma_sound *sound){ // !impt: 64bit math here. can't be im game
+  return (ma_uint32) ma_sound_get_time_in_milliseconds(sound);
 }
 // c. Relevant variables concerning sound
 ma_uint32 sr; // sample rate of current song
@@ -420,8 +418,8 @@ int main(){
       //printf("Forward time init: %d\n",forward_time);
       while (ma_sound_at_end(&sound)==MA_FALSE){
         // 1/5 find current time
-        time_ms = current_song_time_ms(&engine,sr); // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
-        printf("initial %d\n", (ma_uint32) ma_engine_get_time_in_pcm_frames(&engine));
+        time_ms = (ma_uint32) get_song_time_ms(&sound); // this is probably correct !impt: You need to be very careful in the game if you want to do 32bit timing representation
+        //printf("initial %d. Compare: %llu\n", time_ms, ma_sound_get_time_in_milliseconds(&sound));
         // 2a/5 check if a note just entered the window
         if (FORESIGHT_DISTANCE+time_ms>forward_time){
           forward_index +=1;
@@ -460,10 +458,10 @@ int main(){
         // 3a/5: prepare the window
         // !impt: especially on the actual msp, you might need to force a global offset due to lag
         // only update the board if you need to
-        time_ms = current_song_time_ms(&engine,sr);
+        time_ms = get_song_time_ms(&sound);
         if (time_ms>grid_refresh_timestamp+PRINT_PERIOD){
-          printf("%d\n",time_ms);
-          /*
+          //printf("%d\n",time_ms);
+          
           reset_grid();
           for (window_idx=backward_index; window_idx<forward_index; window_idx++){
             // first, get the row you're in (note that below implementation freezes time_ms)
@@ -501,71 +499,62 @@ int main(){
           fflush(stdout);
           printf("\033[32A\r");
           //clear // not doing due to inconsistent behavior
-          frame = ma_engine_get_time_in_pcm_frames(&engine); // current song time in PCM
-          */
-          grid_refresh_timestamp = current_song_time_ms(&engine,sr);
+          grid_refresh_timestamp = get_song_time_ms(&sound);
           
         }
         
-      
-      // REMAINING TASKS:
-      // 1. Add P,G,O zones (done)
-      // 2. Measure hits
-      // 3. acc logging
       // 4/4: measure hits
-      /*
+      
       if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
-        printf("you read\n");
+        //printf("you read\n");
         if (pressed == 'x'){ // i.e. leave
           game_state = EXIT_GAME;
           printf("Rage quit\n");
           break;
         }
         // timing calculation
-        frame = ma_engine_get_time_in_pcm_frames(&engine);
-        time_ms = current_song_time_ms(frame,sr);
-        if (backward_time!=forward_time){ // can only read from window if window is valid. 
-           valid_idx = first_valid_note_idx(backward_time,forward_time,hitobjs);
-            if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
-              // calculate perfect/good/ok
-              timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
-              timediff = timediff>-1? timediff: -timediff;// abs value
-              hit_result = perf_good_ok(timediff);
-              // modify score results
-              if (hit_result == 100) {
-                perfects+=1;
-                printf("\nPerfect");
-                printf("\033[A");
-              }
-              if (hit_result == 50) {
-                goods+=1;
-                printf("\nGood");
-                printf("\033[A");}
-              if (hit_result == 25) {
-                oks+=1;
-                printf("\nOk");
-                printf("\033[A");}
-              if (hit_result >0){ // constant tasks upon object hit
-                combo+=1;
-                maxcombo = combo>maxcombo ? combo: maxcombo;
-                // mark note as hit
-                mark_note_as_hit(hitobjs,valid_idx);
-              }
-              // debug
-              if (hit_result == 0){
-                combo = 0;
-                misses+=1; // again, shouldn't be handled here
-                printf("Hit result was 0. This shouldn't happen...\n");
-                break;
-              }
-            }
+        time_ms = get_song_time_ms(&sound);
+        valid_idx = first_valid_note_idx(backward_index,forward_index,hitobjs);
+        printf("%d\n",valid_idx);
+        if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
+          // calculate perfect/good/ok
+          timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
+          timediff = timediff>-1? timediff: -timediff;// abs value
+          hit_result = perf_good_ok(timediff);
+          // modify score results
+          if (hit_result == 100) {
+            perfects+=1;
+            printf("Perfect\r");
+          }
+          if (hit_result == 50) {
+            goods+=1;
+            printf("Good\r");
+          }
+          if (hit_result == 25) {
+            oks+=1;
+            printf("Ok\r");
+          }
+          if (hit_result >0){ // constant tasks upon object hit
+            combo+=1;
+            maxcombo = combo>maxcombo ? combo: maxcombo;
+            // mark note as hit
+            mark_note_as_hit(hitobjs,valid_idx);
+          }
+          // debug
+          if (hit_result == 0){
+            combo = 0;
+            misses+=1; // again, shouldn't be handled here
+            //printf("Hit result was 0. Note time %x, note %x, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
+            break;
           }
         }
-          */
       }
+          
+          
+    }
       // clear grid
       //printf("\033[32A\r");
-      //printf("\033[J");
+      //åprintf("\033[J");
       // leave
       printf("Going to report screen...\n");
       game_state = REPORT_SCREEN;
@@ -574,7 +563,6 @@ int main(){
       // find out how to ambiently monitor hits
       // if a hit comes, do the 3 bin thing
       // the 3 bin thing should result in a print and a combo/maxcombo/accuracy modification.(EXT) (maxcombo only upon break/end?)
-
       // part 4 and beyond:
       // (EXT) calculate score at end 
       // (EXT) **btw, you might want to trim songs to a certain length. so actually have a time limit instead of note count limit?**
