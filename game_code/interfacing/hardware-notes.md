@@ -2,6 +2,7 @@
 
 ## Neopixels
 
+[See this link](https://cdn-shop.adafruit.com/datasheets/WS2812B.pdf)
 How this protocol works (WS2812b):
 
 - There is no start sequence. Just write bits. There is an end sequence though
