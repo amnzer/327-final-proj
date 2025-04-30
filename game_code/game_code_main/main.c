@@ -21,7 +21,7 @@
 #define FORESIGHT_DISTANCE DISPLAY_RESOLUTION*29 // 29 leds are >0
 #define HINDSIGHT_DISTANCE DISPLAY_RESOLUTION*3 // 3 leds are <0 w.r.t realtime
 #define MAX_HIT_OBJS 360 // maximum numebr of allowable hitobjects in song. (360 isn't that much, but ra is tiht)
-#define PRINT_PERIOD 30 // Min period in ms before screen can refresh
+#define PRINT_PERIOD 20 // Min period in ms before screen can refresh
 
 // 1. Common Objects
 // a. The grid
