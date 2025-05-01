@@ -23,6 +23,7 @@
 #define MAX_HIT_OBJS 266 // maximum numebr of allowable hitobjects in song. (max across all songs rn is ETA at 266)
 #define PRINT_PERIOD 20 // Min period in ms before screen can refresh
 
+char gameplay = 1; // 1 if the game is being played
 // 1. Common Objects
 // a. The grid
 char grid[32][8];
@@ -151,6 +152,25 @@ void draw_note(short x, short pad){
   }
   grid[x][y] = '*';
 }
+void realtime_feedback(char latest_hit_note){
+   // clear until end of screen
+  if (latest_hit_note == 4){
+    printf("\n\033[2K");
+    printf(BLU"Perfect\r\033[A"RESET);
+  }
+  if (latest_hit_note == 2){
+    printf("\n\033[2K");
+    printf(GRN"Good\r\033[A"RESET);
+  } 
+  if (latest_hit_note == 1){
+    printf("\n\033[2K");
+    printf(YEL"Ok...\r\033[A"RESET);
+  }
+  if (latest_hit_note == 0){
+    printf("\n\033[2K");
+    printf(RED"Miss!\r\033[A"RESET); 
+  }
+}
 // 2. Sound
 // a. Playback
 unsigned short song_initialized = 0; //true if song is playing
@@ -234,6 +254,7 @@ short goods=0;
 short oks=0; 
 short misses=0;
 float accuracy;
+char last_hit_note = 127; // 4: perf, 2: good, 1: ok, 0: miss. 255 isn't real
 // 3.b. Parsing hit objects
 unsigned int has_been_hit(unsigned int hitobj){
   return (hitobj & (1<<31)) == 1<<31; // see game_readme_technical
@@ -243,10 +264,10 @@ unsigned int get_note_time_ms(unsigned int hitobj){
 }
 char pressed; // stores if a keypress was registered from some key (msut define key later)
 // 3.c. Calculating metrics
-float measure_accuracy(){
+float measure_accuracy(unsigned short song_note_cnt){
   // measures accuracy [0,1]
   // perfects are worth 100, goods 50, oks 25, miss 0
-  return (perfects+0.5*goods+0.25*oks)/(perfects+goods+oks+misses);
+  return (perfects+0.5*goods+0.25*oks)/(song_note_cnt);
 }
 short measure_score(float accuracy, int maxcombo){
   float total_notes = perfects+goods+oks+misses;
@@ -309,6 +330,10 @@ void set_nonblocking() {
   int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
   fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
 }
+void reset_blocking() {
+  int flags = fcntl(STDIN_FILENO, F_GETFL, 0);  
+  fcntl(STDIN_FILENO, F_SETFL, flags & ~O_NONBLOCK);
+}
 // The Game
 int main(){
   //printf("%s\n",perf_msg);
@@ -330,7 +355,7 @@ int main(){
     return result;  // Failed to initialize the engine.
   }
   // Main game loop
-  while (1){
+  while (gameplay){
    switch (game_state){ // 1 of 5 game states
    
     /* State 1/5: Game start
@@ -532,6 +557,7 @@ int main(){
             putchar('\n');
           }
           fflush(stdout);
+          realtime_feedback(last_hit_note);
           printf("\033[32A\r");
           //clear // not doing due to inconsistent behavior
           grid_refresh_timestamp = get_song_time_ms(&sound);
@@ -543,8 +569,16 @@ int main(){
         if (read(STDIN_FILENO,&pressed,1)==1){ // i.e. if there was a non-arrowkey keypress
           //printf("you read\n");
           if (pressed == 'x'){ // i.e. leave
-            game_state = EXIT_GAME;
-            printf("Rage quit?\n");
+            // see results
+            game_state = REPORT_SCREEN;
+            // turn off sound
+            conditional_uninit(&sound);
+            // terminal back to normal
+            disable_raw_input();
+            reset_blocking(); 
+            // clear grid and such
+            printf("\033[J\n");
+            printf("\nRage quit?\n");
             break;
           }
           // timing calculation
@@ -558,21 +592,25 @@ int main(){
             // modify score results
             if (hit_result == 100) {
               perfects+=1;
-              printf("Perfect\r");
+              last_hit_note = 4;
+              //printf("Perfect");
             }
             if (hit_result == 50) {
               goods+=1;
-              printf("Good\r");
+              last_hit_note = 2;
+              //printf("Good");
             }
             if (hit_result == 25) {
+              last_hit_note = 1;
               oks+=1;
-              printf("Ok\r");
+              //printf("Ok");
             }
             // hit too early
             if (hit_result == 0){
+              last_hit_note = 0;
               combo = 0;
               misses+=1; // actually whatever just handle the entire input who caress who cares
-              printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
+              //printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
              //break;
             }
             // constant tasks
@@ -587,6 +625,8 @@ int main(){
       //printf("\033[32A\r");
       //printf("\033[J");
       // leave
+      disable_raw_input();
+      reset_blocking(); // gameplay done so this is off
       printf("Going to report screen...\n");
       game_state = REPORT_SCREEN;
       break;
@@ -600,8 +640,8 @@ int main(){
       //printf("Final time: %d\n",time_ms);
       //break;
     case REPORT_SCREEN:
-      accuracy = measure_accuracy();
-      printf(CYN"%s:\n"RESET,perf_msg);
+      accuracy = measure_accuracy(song_note_cnt);
+      printf(CYN"%s\n"RESET,perf_msg);
       printf(RED"Accuracy: %.2f\n"RESET,accuracy*100);
       printf(GRN"Perfect %d | Good: %d | Ok: %d\n"RESET,perfects,goods,oks);
       printf(MAG"Max combo: %d/%d\n"RESET,maxcombo,song_note_cnt);
@@ -616,12 +656,12 @@ int main(){
         if(user_input == 'e'){
           game_state = SONG_SELECT;
           printf("Going to song select...\n\n");
-          load_song(0,songlist,&engine, &sound,1); // should be random, not zero
+          load_song(carousel_idx,songlist,&engine, &sound,1); // should be random tbf
           break;
         }
         // x to leave (go to EXIT_GAME)
         else if (user_input == 'x'){
-          game_state = EXIT_GAME;
+          game_state = EXIT_GAME; // redundant tbh but w/e
           break;
         }
         // neither
@@ -629,11 +669,12 @@ int main(){
           printf("Not e, and not x...\n");
         }
       }
-      game_state = EXIT_GAME;
+      game_state = (game_state == SONG_SELECT) ? SONG_SELECT : EXIT_GAME; // if you go to song select, go to song select. else exit game
       break;
     // Game State 5: Exit Game
     case EXIT_GAME:
       printf("Thanks for playing!\n\n");
+      gameplay = 0;
       break;
     default: // how do you even get here?
       printf("No mans land...\n\n");
@@ -643,6 +684,8 @@ int main(){
 
   // clear sound and engine
   disable_raw_input(); // if this is still on
+  reset_blocking(); // redundant but w/e
+  // remove sound and engine
   conditional_uninit(&sound);
   ma_engine_uninit(&engine);
 
