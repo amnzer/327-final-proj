@@ -135,7 +135,7 @@ void clear_input_buffer() {
 void reset_grid(){
   for (int i=0;i<32;i++){
     for (int j=0;j<8;j++){
-      grid[i][j]='x';
+      grid[i][j]='.';
     }
   }
 }
@@ -499,6 +499,7 @@ int main(){
           if (has_been_hit(hitobjs[backward_index])==0){ // if hasn't been hit
             combo = 0;
             misses+=1;
+            last_hit_note = 0;
             // no need for real time acc. but if you wanted it:
             // - reset accuracy
             // - reset combo
