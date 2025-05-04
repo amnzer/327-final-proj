@@ -120,7 +120,7 @@ char perf_msg[] = "                                                             
 char user_input = '\0'; // tracks user input
 int prev_carousel_idx = 0; 
 int carousel_idx = 0;
-
+char input_channel; //
 // f. Helper functions for strings
 void clear_input_buffer() {
   int c;
@@ -133,7 +133,7 @@ void reset_grid(){
     }
   }
 }
-char get_channel(unsigned int note){
+char get_note_channel(unsigned int note){
   return (note&1<<30)==(1<<30);
 }
 void draw_note(short x, short pad, char channel){
@@ -279,11 +279,11 @@ short measure_score(float accuracy, int maxcombo){
 // later on you will be addin more boolfuncs for finding note type, color, direction, etc.
 
 // 3.d. Finding valid hit objects
-short first_valid_note_idx(short backward_idx, short forward_idx, unsigned int hitobjs[]){
+short first_valid_note_idx(short backward_idx, short forward_idx, unsigned int hitobjs[],char channel){
   // find the index of the first valid note. if none, return 1.
   short idx = backward_idx;
   while (idx<forward_idx){
-    if (!has_been_hit(hitobjs[idx])){
+    if (!has_been_hit(hitobjs[idx]) && (get_note_channel(hitobjs[idx])==channel)){
       return idx;
     }
     idx++;
@@ -307,7 +307,15 @@ char perf_good_ok(short timediff){
   return 0; // shouldn't happen at all
 }
 char hit_result; // 100, 50, 25, 0
-
+char get_hit_channel(char pressed){
+  if (pressed =='a' || pressed == 'q'){
+    return 0;
+  }
+  if (pressed =='d' || pressed == 'e'){
+    return 1;
+  }
+  return 2;
+}
 void mark_note_as_hit(unsigned int hitobjs[],short idx){
   hitobjs[idx] = hitobjs[idx] | 0x1<<31; // set 31st bit to 1
 }
@@ -531,7 +539,7 @@ int main(){
             // first, get the row you're in (note that below implementation freezes time_ms)
             if (!has_been_hit(hitobjs[window_idx])){
               row = (time_ms+FORESIGHT_DISTANCE-get_note_time_ms(hitobjs[window_idx]))/DISPLAY_RESOLUTION;
-              draw_note(row,1,get_channel(hitobjs[window_idx]));
+              draw_note(row,1,get_note_channel(hitobjs[window_idx]));
             }
             //printf("Row: %d",row);
             // gng ur not checking if ntoe vanishes
@@ -585,43 +593,46 @@ int main(){
             printf("\nRage quit?\n");
             break;
           }
-          // timing calculation
-          time_ms = get_song_time_ms(&sound);
-          valid_idx = first_valid_note_idx(backward_index,forward_index,hitobjs);
-          if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
-            // calculate perfect/good/ok
-            timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
-            timediff = timediff>-1? timediff: -timediff;// abs value
-            hit_result = perf_good_ok(timediff);
-            // modify score results
-            if (hit_result == 100) {
-              perfects+=1;
-              last_hit_note = 4;
-              //printf("Perfect");
+          input_channel = get_hit_channel(pressed);
+          if (input_channel == 0 || input_channel ==1){ // left or right
+            // timing calculation
+            time_ms = get_song_time_ms(&sound);
+            valid_idx = first_valid_note_idx(backward_index,forward_index,hitobjs,input_channel);
+            if (valid_idx>-1){ // only do anything  if a note being hit happens at a valid time
+              // calculate perfect/good/ok
+              timediff = get_note_time_ms(hitobjs[valid_idx])-time_ms; // could this be chronically delayed?
+              timediff = timediff>-1? timediff: -timediff;// abs value
+              hit_result = perf_good_ok(timediff);
+              // modify score results
+              if (hit_result == 100) {
+                perfects+=1;
+                last_hit_note = 4;
+                //printf("Perfect");
+              }
+              if (hit_result == 50) {
+                goods+=1;
+                last_hit_note = 2;
+                //printf("Good");
+              }
+              if (hit_result == 25) {
+                last_hit_note = 1;
+                oks+=1;
+                //printf("Ok");
+              }
+              // hit too early
+              if (hit_result == 0){
+                last_hit_note = 0;
+                combo = 0;
+                misses+=1; // actually whatever just handle the entire input who caress who cares
+                //printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
+              //break;
+              }
+              // constant tasks
+              combo+=1;
+              maxcombo = combo>maxcombo ? combo: maxcombo;
+              // mark note as hit
+              mark_note_as_hit(hitobjs,valid_idx);
             }
-            if (hit_result == 50) {
-              goods+=1;
-              last_hit_note = 2;
-              //printf("Good");
-            }
-            if (hit_result == 25) {
-              last_hit_note = 1;
-              oks+=1;
-              //printf("Ok");
-            }
-            // hit too early
-            if (hit_result == 0){
-              last_hit_note = 0;
-              combo = 0;
-              misses+=1; // actually whatever just handle the entire input who caress who cares
-              //printf("Hit result was 0. Note time %d, note %d, hit time %d, index %d \n",get_note_time_ms(hitobjs[valid_idx]),hitobjs[valid_idx],time_ms,valid_idx);
-             //break;
-            }
-            // constant tasks
-            combo+=1;
-            maxcombo = combo>maxcombo ? combo: maxcombo;
-            // mark note as hit
-            mark_note_as_hit(hitobjs,valid_idx);
           }
         }
       }
@@ -631,6 +642,7 @@ int main(){
       // leave
       disable_raw_input();
       reset_blocking(); // gameplay done so this is off
+      printf("\033[J"); // clear screen
       printf("Going to report screen...\n");
       game_state = REPORT_SCREEN;
       break;
