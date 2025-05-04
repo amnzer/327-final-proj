@@ -557,8 +557,8 @@ int main(){
             }
             putchar('\n');
           }
-          fflush(stdout);
           realtime_feedback(last_hit_note);
+          fflush(stdout);
           printf("\033[32A\r");
           //clear // not doing due to inconsistent behavior
           grid_refresh_timestamp = get_song_time_ms(&sound);
