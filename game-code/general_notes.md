@@ -20,7 +20,7 @@ Things osu has that can be hard to translate:
 
 ### On the leniency of hit windows
 
-In osu, OD4 is $\pm 56$ ms for perfects and $\pm 170$ for any valid inputs. Accordingly, can do $\pm 60$ for perfect/good/ok (symmetry). This seems reasonable. Total window is $360$ms long for note inputs.
+In osu, OD4 is $\pm 56$ ms for perfects and $\pm 170$ for any valid inputs. Accordingly, can do $\pm 60$ for perfect/good/ok (symmetry). This seems reasonable. Total window is $360$ ms long for note inputs.
 
 Algebra:
 

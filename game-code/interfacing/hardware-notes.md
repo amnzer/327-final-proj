@@ -15,6 +15,6 @@ How this protocol works (WS2812b):
 
 ## Playback
 
-Will use audio chip for playback. Must convert .mp3 for .ogg or .wav (not recommended though) for audio chip.
+Will use audio chip for playback. Must convert .mp3 to .ogg or .wav (not recommended though) for audio chip.
 
 **Major Challenge 2**: Find out how to have MSPM0 select song from audio chip, and have audio chip play the song on speaker. Audio chip should send signal to MSPM0 once this is done.
