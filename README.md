@@ -8,7 +8,7 @@ For our ELEC 327 final project, we tried to recreate the game [Beat Saber](https
 
 What each of the folders in this repo are for:
 
-- game-code: Contains a demo version of the game which can be played in a laptop's terminal.
+- game-code: Contains code for a demo version of the game which can be played in a laptop's terminal.
 - microcontroller-code: Contains all of the files in the CCStudio project we made to program our microcontrollers.
 - oszs: Contains content from the rhythm game osu, from which we derived the playable charts in our game.
 - pcb-code: Contains KiCAD files for the PCB we made.
