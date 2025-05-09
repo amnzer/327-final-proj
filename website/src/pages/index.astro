@@ -20,53 +20,70 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 		<meta name="generator" content={Astro.generator} />
 		<title>{siteName}</title>
 	</head>
-	<body >
+	<body  class="bg-gray-900 text-gray-300 min-h-screen">
+		<div class="max-w-3xl mx-auto px-4 bg-gray-800 rounded-lg shadow-xl "> <!-- the everything div -->
 		<!-- intro section -->
 		<div class = "border-b border-gray-200 pt-4 pb-8">
-		<h1 class="text-4xl font-bold">{siteName}</h1>
-			<p>
+		<h1 class="text-4xl font-bold text-center mb-8">{siteName}</h1>
+			<p class="ml-4">
 				We aimed to recreate the game Beat Saber for our ELEC 327 final project. This website showcases the work we did.
 			</p>
 		</div>
 		<div class = "border-b border-gray-200 pt-4 pb-8">
-			<h2 class = "text-3xl font-bold">{sectionNames.one}</h2>
-				<p>
-					What exactly were we doing?
+			<h2 class = "text-3xl mb-4  font-bold">{sectionNames.one}</h2>
+				<p class="ml-4">
+					So, what exactly were we doing?
 				</p>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.one[0]}</h3>
-				<p><a href="https://www.beatsaber.com/">Beat Saber</a> is a VR rhythm game. In Beat Saber, the player listens to a song 
+				<p class="ml-4"><a href="https://www.beatsaber.com/">Beat Saber</a> is a VR rhythm game. In Beat Saber, the player listens to a song 
 					while holding two lightsaber-esque objects. As the song plays, shiny cubes approach the player 
 					to the rhythm of the song. The player's goal is to strike the cubes accurately and with good
 					timing, so that they can score points and do well on the song. 
 				</p>
-				<img class = "w-sm" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWhtZHhtNGcza21oNXdkOGFoOGlvOHB6YnpiOGcxdW0yeTd3N2QzciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/JRgLEZCsivjHoRWpb2/giphy.gif" alt="Beat Saber Gameplay Gif" />
+				<img class = "w-sm mx-auto pt-8 pb-4" src="https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExMWhtZHhtNGcza21oNXdkOGFoOGlvOHB6YnpiOGcxdW0yeTd3N2QzciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/JRgLEZCsivjHoRWpb2/giphy.gif" alt="Beat Saber Gameplay Gif" />
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.one[1]}</h3>
-				<p>
+				<p class="ml-4">
 					What we tried to do was recreate a game like Beat Saber. We wanted to include all of the 
 					functionality of the game, covering the player's experience of everything between them starting up and
 					leaving a play session. In particular, we aimed to cover these key areas:
 				</p>
-				<ol>
-					<li><strong>Welcome Screen:</strong> The player sees a welcome message, and can give any input to proceed.</li>
-					<li><strong>Song Select:</strong> The player is greeted with a catalog of playable songs which they can scroll through and hear.</li>
-					<li><strong>In Game:</strong> A song plays, and notes approach the player in sync with the song. The player must move their controller at the time the notes enter the strike zone to score points and accumulate combo.</li>
-					<li><strong>Report Screen:</strong> The player sees their accuracy, maximum combo, and overall performance. The player can go back to song select or leave the game.</li>
-					<li><strong>Exit Screen:</strong> The player leaves the game, seeing a warm exit message on their way out.</li>
-				</ol>
+
+				<div class="ml-4 mb-4 mt-4 border rounded-md overflow-hidden">
+					<div class="grid grid-cols-2">
+						<div class="p-3 border-r"><strong>Welcome Screen:</strong></div>
+						<div class="p-3">The player sees a welcome message, and can give any input to proceed</div>
+					</div>
+					<div class="grid grid-cols-2 border-t">
+						<div class="p-3 border-r font-medium"><strong>Song Select:</strong></div>
+						<div class="p-3">The player is greeted with a catalog of playable songs which they can scroll through and hear.</div>
+					</div>
+					<div class="grid grid-cols-2 border-t">
+						<div class="p-3 border-r font-medium"><strong>In Game:</strong></div>
+						<div class="p-3">A song plays, and notes approach the player in sync with the song. The player must move their controller at the time the notes enter the strike zone to score points and accumulate combo.</div>
+					</div>
+					<div class="grid grid-cols-2 border-t">
+						<div class="p-3 border-r font-medium"><strong>Report Screen:</strong></div>
+						<div class="p-3"> The player sees their accuracy, maximum combo, and overall performance. The player can go back to song select or leave the game.</div>
+					</div>
+					<div class="grid grid-cols-2 border-t">
+						<div class="p-3 border-r font-medium"><strong>Exit Screen:</strong></div>
+						<div class="p-3">The player leaves the game, seeing a warm exit message on their way out.</div>
+					</div>
+				</div>
 		</div>
 		<!-- planning section -->
 		<div class = "pt-4 pb-8 border-b border-gray-200 ">
-		 <h2 class = "text-3xl font-bold">{sectionNames.two}</h2>
-			<p>
+		 <h2 class = "text-3xl mb-4  font-bold">{sectionNames.two}</h2>
+			<p class="ml-4">
 			With our design goals laid out, we then needed to make plans for how we would reach them and 
 			what tools we would use to implement the game with. This section will go over these topics. 
 			</p>
 		 	<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.two[0]}</h3>
-		 		<p>
+		 		<p class="ml-4">
 					The first thing we thought about was the hardware with which we were going to implement the game.
 					Our plan was to use the following hardware:
 				</p>
-				<ol>
+				<ol class="list-decimal ml-12 pt-4 pb-4 space-y-2">
 					<li><strong><a href="https://www.ti.com/product/MSPM0G3507">MSPM0G3507xDGS28</a> (x1):</strong> This 28-pin microcontroller was selected to be the core of the project.</li>
 					<li><strong><a href="https://www.amazon.com/HJHX-Programmable-Individually-Addressable-Raspberry/dp/B0B771455N">HJHX 2220 32x8 WS2812B LED Array</a> (x1):</strong> This LED strip was selected to be the display for our game, showing notes coming down while a song plays.</li>
 					<li><strong><a href="https://www.adafruit.com/product/2220">Adafruit 2220 FX Sound Board</a> (x1):</strong> This IC was selected to store and play the songs of the game.</li>
@@ -77,28 +94,30 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 					<li><strong>Buttons (x6):</strong> We wanted several buttons for our PCB as well.</li>
 				</ol>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.two[1]}</h3>
-			<p>
+			<p class="ml-4">
 				So that we could better understand the game and isolate the game logic before having to worry about resource constraints, 
 				one of the first things we planned to do was write a version of the game that could be played from within Terminal on a laptop.
 			</p>
 		</div>
 		<!-- section three here -->
 		<div class = "pt-4 pb-8 border-b border-gray-200 ">
-		<h2 class = "text-3xl font-bold">{sectionNames.three}</h2>
-			With our goals in mind, we then started to implement the plan. This section will describe what we did for that purpose.
-			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[0]}</h3>
-				<p>
+		<h2 class = "text-3xl mb-4  font-bold">{sectionNames.three}</h2>
+			<p class="ml-4">
+				With our goals in mind, we then started to implement the plan. This section will describe what we did for that purpose.
+			</p>
+				<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[0]}</h3>
+				<p class="ml-4">
 					The first step was to simulate the game on a laptop to learn how the game works and realize what challenges
 					we would face in implementing a game like Beat Saber. The game was written in around 700 lines of C. Below is a demo
 					of what the gameplay looks like:
 				</p>
-				<iframe width="560" height="315" src="https://www.youtube.com/embed/7m7L9PjROcY?si=VLsdox_mgpjYWRb3" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+				<iframe class=" mx-auto pt-8 pb-8" width="560" height="315" src="https://www.youtube.com/embed/7m7L9PjROcY?si=VLsdox_mgpjYWRb3" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[1]}</h3>
-				<p>
+				<p class="ml-4">
 					We designed our two-layer PCB using the aforementioned parts. Below is our final design:
 				</p>
-				<Image src={pcbRender} alt="PCB Render" loading="eager" class=""/>
-				<p>
+				<Image class="max-w-lg mx-auto pt-8 pb-8" src={pcbRender} alt="PCB Render" loading="eager"/>
+				<p class="ml-4">
 					The system is powered through a 5V barrel jack (the barrel jack port is at the bottom left), which feeds into a 
 					5V-3.3V DC-DC converter at the top left. The 5V rail delivers power to the power-hungry LED
 					array as well as our speaker amplification circuit. The 3.3V rail can be accessed via the left
@@ -107,31 +126,31 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 					directly for interfacing with all of our devices, for which purpose we have all the header pins at the top right.
 				</p>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[2]}</h3>
-				<p>
+				<p class="ml-4">
 					To make the joysticks for the game, we 3D-printed enclosures for our accelerometers. Below is the
 					design for our joysticks
-					<Image src={schematic} alt="Schematic" loading="eager"/>
+					<Image class="max-w-lg mx-auto pt-8 pb-8" src={schematic} alt="Schematic" loading="eager"/>
 
 				</p>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[3]}</h3>
-				<p>
+				<p class="ml-4">
 					Once our PCB arrived and all of our parts were in hand, the next step was to assemble everything. 
 					Below is what the final setup looks like:
 				</p>
-				<Image src={fullSetup} alt="Everything Assembled" loading="eager"/>
+				<Image class="max-w-lg mx-auto pt-8 pb-8" src={fullSetup} alt="Everything Assembled" loading="eager"/>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[4]}</h3>
-				<p>
+				<p class="ml-4">
 					We had to figure out how to communicate with the LED array and accelerometer peripherals. 
 					The LED array uses a protocol called WS2812b, which isn't natively supported by MSPM0 microcontrollers.
 					The protocol involves sampling data signals within a certain period, and determining 1 or 0 based on whether
 					the data was held high or held low for longer.
 				</p>
-					<Image src={ws2812} alt="Visual of WS2812b Protocol" />
-				<p>
+					<Image class="max-w-lg mx-auto pt-8 pb-8" src={ws2812} alt="Visual of WS2812b Protocol" />
+				<p class="ml-4">
 					We were pleased to find that this protocol can be mimicked with SPI, by sending 110 to indicate a 1 bit
 					and 100 to indicate a zero bit. In this way we were able to interface with our LED array.
 				</p>
-				<p>
+				<p class="ml-4">
 					As for our accelerometers, we used I2C for communication. We were unsuccessful in giving each accelerometer
 					its own I2C channel on the MSPM0, which would have been the preferred way to get both accelerometers working.
 					A workaround we tried was to put the data and clock pins from both accelerometers in parallel on the same I2C
@@ -142,14 +161,16 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 				</p>
 			</div>
 			<div class = "pt-4 pb-8 border-b border-gray-200 ">
-				<h2 class = "text-3xl font-bold">{sectionNames.four}</h2>
-					<p>After we assembled and tested everything, we were ready to play the game. Here is what our game looks like</p>
-					<iframe width="560" height="315" src="https://www.youtube.com/embed/_W2wUD-qPj0?si=cBZnIAtos-g0lXic" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+				<h2 class = "text-3xl mb-4 font-bold">{sectionNames.four}</h2>
+					<p class="ml-4">After we assembled and tested everything, we were ready to play the game. Here is what our game looks like</p>
+					<iframe class="max-w-lg mx-auto pt-8 pb-8" width="560" height="315" src="https://www.youtube.com/embed/_W2wUD-qPj0?si=cBZnIAtos-g0lXic" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 			</div>
-			<div class = "pt-4 pb-8 border-b border-gray-200 ">
-				<h2 class="text-3xl font-bold">{sectionNames.five}</h2>
-				<p>Overall, our project was really fun and cool. We learned a huge amount about PCB design, microcontroller programming,
+			<div class = "pt-4 pb-8">
+				<h2 class="text-3xl mb-4 font-bold">{sectionNames.five}</h2>
+				<p class="ml-4">Overall, our project was fun and educational. We learned a huge amount about PCB design, microcontroller programming,
 					C, various communication protocols, and how to implement custom hardware solutions to a real world problem.
 				</p>
 			</div>
+		</div>
+	</body>
 </html>
