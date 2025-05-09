@@ -20,22 +20,22 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 		<meta name="generator" content={Astro.generator} />
 		<title>{siteName}</title>
 	</head>
-	<body  class="bg-gray-900 text-gray-300 min-h-screen">
-		<div class="max-w-3xl mx-auto px-4 bg-gray-800 rounded-lg shadow-xl "> <!-- the everything div -->
+	<body class= "min-h-screen bg-white text-gray-800 font-sans leading-relaxed tracking-wide">
+		<div class=" max-w-prose mx-auto px-4 rounded-lg shadow-xl bg-gradient-to-b transition p-4"> <!-- the everything div -->
 		<!-- intro section -->
-		<div class = "border-b border-gray-200 pt-4 pb-8">
+		<div class = "border-b border-gray-400 pt-4 pb-8">
 		<h1 class="text-4xl font-bold text-center mb-8">{siteName}</h1>
 			<p class="ml-4">
 				We aimed to recreate the game Beat Saber for our ELEC 327 final project. This website showcases the work we did.
 			</p>
 		</div>
-		<div class = "border-b border-gray-200 pt-4 pb-8">
+		<div class = "border-b border-gray-400 pt-4 pb-8">
 			<h2 class = "text-3xl mb-4  font-bold">{sectionNames.one}</h2>
 				<p class="ml-4">
 					So, what exactly were we doing?
 				</p>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.one[0]}</h3>
-				<p class="ml-4"><a href="https://www.beatsaber.com/">Beat Saber</a> is a VR rhythm game. In Beat Saber, the player listens to a song 
+				<p class="ml-4"><a class="text-blue-400"href="https://www.beatsaber.com/">Beat Saber</a> is a VR rhythm game. In Beat Saber, the player listens to a song 
 					while holding two lightsaber-esque objects. As the song plays, shiny cubes approach the player 
 					to the rhythm of the song. The player's goal is to strike the cubes accurately and with good
 					timing, so that they can score points and do well on the song. 
@@ -72,7 +72,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 				</div>
 		</div>
 		<!-- planning section -->
-		<div class = "pt-4 pb-8 border-b border-gray-200 ">
+		<div class = "pt-4 pb-8 border-b border-gray-400 ">
 		 <h2 class = "text-3xl mb-4  font-bold">{sectionNames.two}</h2>
 			<p class="ml-4">
 			With our design goals laid out, we then needed to make plans for how we would reach them and 
@@ -96,11 +96,11 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.two[1]}</h3>
 			<p class="ml-4">
 				So that we could better understand the game and isolate the game logic before having to worry about resource constraints, 
-				one of the first things we planned to do was write a version of the game that could be played from within Terminal on a laptop.
+				one of the first things we planned to do was write a version of the game that could be played from within Terminal on a laptop. This version
 			</p>
 		</div>
 		<!-- section three here -->
-		<div class = "pt-4 pb-8 border-b border-gray-200 ">
+		<div class = "pt-4 pb-8 border-b border-gray-400 ">
 		<h2 class = "text-3xl mb-4  font-bold">{sectionNames.three}</h2>
 			<p class="ml-4">
 				With our goals in mind, we then started to implement the plan. This section will describe what we did for that purpose.
@@ -150,8 +150,8 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 					We were pleased to find that this protocol can be mimicked with SPI, by sending 110 to indicate a 1 bit
 					and 100 to indicate a zero bit. In this way we were able to interface with our LED array.
 				</p>
-				<p class="ml-4">
-					As for our accelerometers, we used I2C for communication. We were unsuccessful in giving each accelerometer
+				<p class="ml-4 mt-4 hyphens-auto break-normal">
+					As for our accelerometers, we used I2C for communications. We were unsuccessful in giving each accelerometer
 					its own I2C channel on the MSPM0, which would have been the preferred way to get both accelerometers working.
 					A workaround we tried was to put the data and clock pins from both accelerometers in parallel on the same I2C
 					channel, and use GPIO to alternate which accelerometer is powered on. This experiment was somewhat successful 
@@ -160,7 +160,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 					play the game, tilting left to hit notes in the left channel and tilting right to hit notes in the right channel.
 				</p>
 			</div>
-			<div class = "pt-4 pb-8 border-b border-gray-200 ">
+			<div class = "pt-4 pb-8 border-b border-gray-400 ">
 				<h2 class = "text-3xl mb-4 font-bold">{sectionNames.four}</h2>
 					<p class="ml-4">After we assembled and tested everything, we were ready to play the game. Here is what our game looks like</p>
 					<iframe class="max-w-lg mx-auto pt-8 pb-8" width="560" height="315" src="https://www.youtube.com/embed/_W2wUD-qPj0?si=cBZnIAtos-g0lXic" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
@@ -168,7 +168,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 			<div class = "pt-4 pb-8">
 				<h2 class="text-3xl mb-4 font-bold">{sectionNames.five}</h2>
 				<p class="ml-4">Overall, our project was fun and educational. We learned a huge amount about PCB design, microcontroller programming,
-					C, various communication protocols, and how to implement custom hardware solutions to a real world problem.
+					C, various communication protocols, and how to implement custom hardware solutions to real world problems.
 				</p>
 			</div>
 		</div>
