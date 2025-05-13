@@ -20,7 +20,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 		<meta name="generator" content={Astro.generator} />
 		<title>{siteName}</title>
 	</head>
-	<body class= "min-h-screen bg-white text-gray-800 font-sans leading-relaxed tracking-wide">
+	<body class= "font-pixeboy min-h-screen bg-white text-gray-800 leading-relaxed tracking-wide">
 		<div class=" max-w-prose mx-auto px-4 rounded-lg shadow-xl bg-gradient-to-b transition p-4"> <!-- the everything div -->
 		<!-- intro section -->
 		<div class = "border-b border-gray-400 pt-4 pb-8">
@@ -96,7 +96,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.two[1]}</h3>
 			<p class="ml-4">
 				So that we could better understand the game and isolate the game logic before having to worry about resource constraints, 
-				one of the first things we planned to do was write a version of the game that could be played from within Terminal on a laptop. This version
+				one of the first things we planned to do was write a version of the game that could be played from within Terminal on a laptop.
 			</p>
 		</div>
 		<!-- section three here -->
@@ -128,9 +128,8 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[2]}</h3>
 				<p class="ml-4">
 					To make the joysticks for the game, we 3D-printed enclosures for our accelerometers. Below is the
-					design for our joysticks
+					design for our joysticks:
 					<Image class="max-w-lg mx-auto pt-8 pb-8" src={schematic} alt="Schematic" loading="eager"/>
-
 				</p>
 			<h3 class="text-2xl pt-4 pb-2 font-bold">{subsection_lists.three[3]}</h3>
 				<p class="ml-4">
@@ -143,7 +142,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 					We had to figure out how to communicate with the LED array and accelerometer peripherals. 
 					The LED array uses a protocol called WS2812b, which isn't natively supported by MSPM0 microcontrollers.
 					The protocol involves sampling data signals within a certain period, and determining 1 or 0 based on whether
-					the data was held high or held low for longer.
+					the data was held high or held low for longer. Below is a relevant visual for the protocol:
 				</p>
 					<Image class="max-w-lg mx-auto pt-8 pb-8" src={ws2812} alt="Visual of WS2812b Protocol" />
 				<p class="ml-4">
@@ -162,7 +161,7 @@ const subsection_lists = {one: ["Context", "Goals"],two:["Parts Needed", "Simula
 			</div>
 			<div class = "pt-4 pb-8 border-b border-gray-400 ">
 				<h2 class = "text-3xl mb-4 font-bold">{sectionNames.four}</h2>
-					<p class="ml-4">After we assembled and tested everything, we were ready to play the game. Here is what our game looks like</p>
+					<p class="ml-4">After we assembled and tested everything, we were ready to play the game. Here is what our game looks like:</p>
 					<iframe class="max-w-lg mx-auto pt-8 pb-8" width="560" height="315" src="https://www.youtube.com/embed/_W2wUD-qPj0?si=cBZnIAtos-g0lXic" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 			</div>
 			<div class = "pt-4 pb-8">

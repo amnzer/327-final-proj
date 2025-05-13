@@ -1,1 +1,8 @@
 @import "tailwindcss";
+@font-face {
+  font-family: "pixeboy";
+  src: url("/fonts/Pixeboy-z8XGD.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
